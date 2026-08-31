@@ -9,6 +9,8 @@ node. cluster-admin is all of it at once.
 
 from raqib.lib.common import _finding, _principal_label
 
+WORKLOADS = ["deployments", "daemonsets", "statefulsets", "replicasets", "jobs", "cronjobs", "replicationcontrollers"]
+
 
 def _label(p):
     return _principal_label(p)
@@ -47,6 +49,30 @@ def check(acct):
             findings.append(_finding("kk" + str(n), "high", "Can create pods cluster wide", p,
                 f"{p.kind} {p.name} can create pods in any namespace, which can mount a host path or a powerful service account and reach the node.",
                 "Scope pod creation to the namespaces a workload needs, and enforce a pod security standard.",
+                "privilege escalation"))
+            n += 1
+        if any(acct.can(p, "create", r, cluster_wide_only=True) or acct.can(p, "update", r, cluster_wide_only=True) for r in WORKLOADS):
+            findings.append(_finding("kk" + str(n), "high", "Can create workloads that run pods", p,
+                f"{p.kind} {p.name} can create or change workload controllers such as deployments and daemonsets, which spawn pods that can mount a host path or a powerful service account and reach the node.",
+                "Scope workload creation to the namespaces a team owns, and enforce a pod security standard.",
+                "privilege escalation"))
+            n += 1
+        if acct.can(p, "create", "pods/exec", cluster_wide_only=True) or acct.can(p, "create", "pods/attach", cluster_wide_only=True):
+            findings.append(_finding("kk" + str(n), "high", "Can exec into running pods", p,
+                f"{p.kind} {p.name} can exec into or attach to running pods, taking over a workload and the service account token mounted in it.",
+                "Remove exec and attach on pods unless debugging a namespace requires it.",
+                "privilege escalation"))
+            n += 1
+        if acct.can(p, "create", "serviceaccounts/token", cluster_wide_only=True):
+            findings.append(_finding("kk" + str(n), "high", "Can mint tokens for service accounts", p,
+                f"{p.kind} {p.name} can create tokens for service accounts, minting a credential for a more powerful identity.",
+                "Remove create on serviceaccounts/token unless this subject issues tokens for a workload.",
+                "privilege escalation"))
+            n += 1
+        if acct.can(p, "create", "certificatesigningrequests", cluster_wide_only=True) and acct.can(p, "update", "certificatesigningrequests/approval", cluster_wide_only=True):
+            findings.append(_finding("kk" + str(n), "high", "Can issue client certificates to authenticate as anyone", p,
+                f"{p.kind} {p.name} can create certificate signing requests and approve them, minting a client certificate for any user or group, including one in a privileged group.",
+                "Separate creating certificate signing requests from approving them, and keep approval to the control plane.",
                 "privilege escalation"))
             n += 1
     return findings

@@ -45,6 +45,22 @@ class TestK8sFindings(unittest.TestCase):
         self.assertIn("escalate", titles)
         self.assertIn("bind", titles)
 
+    def test_workload_creation_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("create workloads that run pods" in f["title"] and f["severity"] == "high" for f in findings))
+
+    def test_exec_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("exec into running pods" in f["title"] and f["severity"] == "high" for f in findings))
+
+    def test_token_minting_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("mint tokens for service accounts" in f["title"] and f["severity"] == "high" for f in findings))
+
+    def test_csr_self_approval_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("client certificates to authenticate as anyone" in f["title"] and f["severity"] == "high" for f in findings))
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)
