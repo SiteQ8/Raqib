@@ -2,7 +2,7 @@
 
 A durable foothold in GCP is a service account key, a long lived credential that keeps
 working, or a fresh service account. Setting the IAM policy on a service account binds
-a controlled principal to it as a stealthy back door, and a scheduled job re-triggers a
+a controlled principal to it as a stealthy back door, and a scheduled job triggers again a
 callback on a timer. Read only, never calls GCP.
 """
 
@@ -35,7 +35,7 @@ def check(acct):
             n += 1
         if acct.has_permission(p, "cloudscheduler.jobs.create"):
             findings.append(_finding("pg" + str(n), "medium", "Can plant a scheduled job", p,
-                f"{_principal_label(p)} can create Cloud Scheduler jobs, a timer an intruder can use to re-trigger a callback and return.",
+                f"{_principal_label(p)} can create Cloud Scheduler jobs, a timer an intruder can use to trigger a callback again and return.",
                 "Limit cloudscheduler.jobs.create, and review scheduled jobs for unexpected targets.",
                 "persistence"))
             n += 1
