@@ -16,6 +16,15 @@ from . import __version__, audit, model
 from . import report as report_mod
 from . import rules as rules_mod
 
+BANNER = r"""
+  ____                 _   _
+ |  _ \    __ _   __ _ (_) | |__
+ | |_) |  / _` | / _` || | | '_ \
+ |  _ <  | (_| || (_| || | | |_) |
+ |_| \_\  \__,_| \__, ||_| |_.__/
+                    |_|   read only IAM exposure auditor
+"""
+
 
 def _load_json(path):
     with open(path, "r", encoding="utf-8") as fh:
@@ -125,26 +134,31 @@ def build_parser():
 
 
 COVERAGE = [
-    ("reconnaissance", "partial",
-     "Flags full control of a sensitive service through a wildcard, the broad visibility used to map an account."),
-    ("privilege escalation", "covered",
+    ("recon", "reconnaissance", "covered",
+     "Flags the one call that dumps the whole IAM configuration, and broad identity enumeration."),
+    ("privesc", "privilege escalation", "covered",
      "The known IAM escalation paths, administrator by wildcard or attached policy, and service wildcards, read with permissions boundary awareness."),
-    ("persistence", "partial",
-     "Flags the create credential and login profile paths that establish a foothold, and users carrying two active access keys."),
-    ("lateral movement", "covered",
+    ("persist", "persistence", "covered",
+     "Flags principals that can create a new user or role and grant it access, and a second active access key on a user."),
+    ("lateral", "lateral movement", "covered",
      "Role trust policies that are assumable by anyone, trust an external account, or federate without a condition."),
-    ("exfiltration", "planned",
-     "Needs resource policies such as S3 bucket and KMS key policies, which are not in the authorization details. This is the next area to add."),
-    ("defense evasion", "covered",
-     "Principals, beyond the administrators already flagged, that can stop or delete CloudTrail, Config, GuardDuty, log groups, and Security Hub."),
+    ("exfil", "exfiltration", "partial",
+     "Flags the permission to read every secret, object, parameter, or key, and to share a snapshot out of the account. Public exposure through a resource policy is the next area to add."),
+    ("cleanup", "anti forensics", "covered",
+     "Flags principals, beyond the administrators already flagged, that can stop or delete CloudTrail, Config, GuardDuty, log groups, or Security Hub."),
 ]
 
 
 def cmd_defends(args):
-    print("What Raqib watches for, by attacker tactic:\n")
-    for tactic, state, text in COVERAGE:
-        print("  " + tactic + "  [" + state + "]")
-        print("    " + text)
+    print(BANNER)
+    print("S7aba runs offence in six module families. Raqib reads the same account for the")
+    print("defensive side of each, the exposure that lets the tactic work, and the fix.\n")
+    print("  S7aba module      Raqib coverage")
+    print("  " + "-" * 58)
+    for module, tactic, state, text in COVERAGE:
+        left = (module + "_*").ljust(16)
+        print("  " + left + "  " + tactic + "  [" + state + "]")
+        print("  " + " " * 16 + "  " + text)
         print()
     print("Raqib reads an AWS IAM export offline. It reports the paths, not the use of them,")
     print("and a clean report means the export named nothing these rules look for.")
@@ -155,6 +169,7 @@ def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "func", None):
+        sys.stdout.write(BANNER + "\n")
         parser.print_help()
         return 0
     return args.func(args)

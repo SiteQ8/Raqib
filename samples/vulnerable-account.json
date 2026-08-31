@@ -200,6 +200,84 @@
       "GroupList": [],
       "AttachedManagedPolicies": [],
       "Tags": []
+    },
+    {
+      "UserName": "recon-bot",
+      "UserId": "AIDAEXAMPLE0009",
+      "Arn": "arn:aws:iam::111122223333:user/recon-bot",
+      "Path": "/",
+      "UserPolicyList": [
+        {
+          "PolicyName": "read-iam",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "iam:GetAccountAuthorizationDetails",
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ],
+      "GroupList": [],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    },
+    {
+      "UserName": "secrets-reader",
+      "UserId": "AIDAEXAMPLE0010",
+      "Arn": "arn:aws:iam::111122223333:user/secrets-reader",
+      "Path": "/",
+      "UserPolicyList": [
+        {
+          "PolicyName": "read-secrets",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "secretsmanager:GetSecretValue",
+                  "ssm:GetParameter"
+                ],
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ],
+      "GroupList": [],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    },
+    {
+      "UserName": "identity-provisioner",
+      "UserId": "AIDAEXAMPLE0011",
+      "Arn": "arn:aws:iam::111122223333:user/identity-provisioner",
+      "Path": "/",
+      "UserPolicyList": [
+        {
+          "PolicyName": "make-users",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "iam:CreateUser",
+                  "iam:TagUser"
+                ],
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ],
+      "GroupList": [],
+      "AttachedManagedPolicies": [],
+      "Tags": []
     }
   ],
   "GroupDetailList": [

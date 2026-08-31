@@ -8,7 +8,7 @@ calls AWS and never touches an account.
 
 from . import model, rules, report, credentials
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 
 def audit(auth_details, credential_report_csv=None, max_key_age_days=90):
