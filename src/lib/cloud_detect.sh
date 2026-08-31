@@ -64,10 +64,11 @@ gather_aws_credentials() {
 }
 
 gather_aws_exposure() {
-  log_step "reading S3 and KMS resource policies (list and get policy, read only)"
+  log_step "reading S3, SQS, SNS, Lambda, Secrets Manager, and KMS resource policies (list and get, read only)"
   local acct; acct="$(run_readonly aws aws sts get-caller-identity --query Account --output text 2>/dev/null)"
   local blist="$WORKDIR/_bnames.txt" klist="$WORKDIR/_knames.txt"
   local tmpb="$WORKDIR/_buckets.jsonl" tmpk="$WORKDIR/_keys.jsonl"
+  local tmpq="$WORKDIR/_sqs.jsonl" tmpt="$WORKDIR/_sns.jsonl" tmpl="$WORKDIR/_lambda.jsonl" tmps="$WORKDIR/_secrets.jsonl"
   : > "$tmpb"; : > "$tmpk"
   run_readonly aws aws s3api list-buckets --query 'Buckets[].Name' --output text 2>/dev/null | tr '\t' '\n' > "$blist"
   local name pol pab
@@ -87,8 +88,40 @@ gather_aws_exposure() {
     jq -nc --arg kid "$kid" --arg kpol "$kpol" \
       '{keyId:$kid, policy:(if $kpol=="" then null else ($kpol|fromjson) end)}' >> "$tmpk" 2>/dev/null
   done < "$klist"
+  : > "$tmpq"; : > "$tmpt"; : > "$tmpl"; : > "$tmps"
+  local url qpol qname arn tpol lname lpol sid spol
+  # SQS queue policies
+  run_readonly aws aws sqs list-queues --query 'QueueUrls' --output text 2>/dev/null | tr '\t' '\n' > "$WORKDIR/_qurls.txt"
+  while IFS= read -r url; do
+    [ -n "$url" ] || continue
+    qpol="$(run_readonly aws aws sqs get-queue-attributes --queue-url "$url" --attribute-names Policy --query 'Attributes.Policy' --output text 2>/dev/null)"
+    qname="${url##*/}"
+    jq -nc --arg name "$qname" --arg pol "$qpol" '{name:$name, policy:(if $pol=="" or $pol=="None" then null else ($pol|fromjson) end)}' >> "$tmpq" 2>/dev/null
+  done < "$WORKDIR/_qurls.txt"
+  # SNS topic policies
+  run_readonly aws aws sns list-topics --query 'Topics[].TopicArn' --output text 2>/dev/null | tr '\t' '\n' > "$WORKDIR/_tarns.txt"
+  while IFS= read -r arn; do
+    [ -n "$arn" ] || continue
+    tpol="$(run_readonly aws aws sns get-topic-attributes --topic-arn "$arn" --query 'Attributes.Policy' --output text 2>/dev/null)"
+    jq -nc --arg name "$arn" --arg pol "$tpol" '{name:$name, policy:(if $pol=="" or $pol=="None" then null else ($pol|fromjson) end)}' >> "$tmpt" 2>/dev/null
+  done < "$WORKDIR/_tarns.txt"
+  # Lambda function resource policies
+  run_readonly aws aws lambda list-functions --query 'Functions[].FunctionName' --output text 2>/dev/null | tr '\t' '\n' > "$WORKDIR/_lnames.txt"
+  while IFS= read -r lname; do
+    [ -n "$lname" ] || continue
+    lpol="$(run_readonly aws aws lambda get-policy --function-name "$lname" --query 'Policy' --output text 2>/dev/null)"
+    jq -nc --arg name "$lname" --arg pol "$lpol" '{name:$name, policy:(if $pol=="" or $pol=="None" then null else ($pol|fromjson) end)}' >> "$tmpl" 2>/dev/null
+  done < "$WORKDIR/_lnames.txt"
+  # Secrets Manager resource policies
+  run_readonly aws aws secretsmanager list-secrets --query 'SecretList[].Name' --output text 2>/dev/null | tr '\t' '\n' > "$WORKDIR/_snames.txt"
+  while IFS= read -r sid; do
+    [ -n "$sid" ] || continue
+    spol="$(run_readonly aws aws secretsmanager get-resource-policy --secret-id "$sid" --query 'ResourcePolicy' --output text 2>/dev/null)"
+    jq -nc --arg name "$sid" --arg pol "$spol" '{name:$name, policy:(if $pol=="" or $pol=="None" then null else ($pol|fromjson) end)}' >> "$tmps" 2>/dev/null
+  done < "$WORKDIR/_snames.txt"
   jq -nc --arg acct "$acct" --slurpfile b "$tmpb" --slurpfile k "$tmpk" \
-    '{account:$acct, buckets:$b, kmsKeys:$k}' > "$WORKDIR/aws-resource-policies.json"
+         --slurpfile q "$tmpq" --slurpfile t "$tmpt" --slurpfile l "$tmpl" --slurpfile s "$tmps" \
+    '{account:$acct, buckets:$b, kmsKeys:$k, sqsQueues:$q, snsTopics:$t, lambdaFunctions:$l, secrets:$s}' > "$WORKDIR/aws-resource-policies.json"
 }
 
 export_path_for() { echo "$WORKDIR/$1.json"; }

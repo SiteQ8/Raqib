@@ -53,8 +53,8 @@ usage() {
 '             also read the AWS credential report: root keys, console users without a' \
 '             second factor, and old keys. Needs generate-credential-report.' \
 '  ./raqib.sh scan --exposure' \
-'             also read S3 and KMS resource policies for buckets and keys left open to' \
-'             the public or another account.' \
+'             also read S3, SQS, SNS, Lambda, Secrets Manager, and KMS resource policies for' \
+'             resources left open to the public or another account.' \
 '  ./raqib.sh defends' \
 '             print the whole cloud by tactic map of what Raqib checks.' \
 '' \

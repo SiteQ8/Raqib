@@ -70,13 +70,17 @@ class TestBashParity(unittest.TestCase):
         base = len(scan("aws", "vulnerable"))
         findings = scan("aws", "vulnerable", ["--resource-policies", rp])
         exposure = [f for f in findings if f["tactic"] == "public exposure"]
-        self.assertEqual(len(exposure), 6)
-        self.assertEqual(len(findings), base + 6)
+        self.assertEqual(len(exposure), 12)
+        self.assertEqual(len(findings), base + 12)
         self.assertEqual(sorted(f["severity"] for f in exposure),
-                         ["critical", "high", "high", "medium", "medium", "medium"])
+                         ["critical", "critical", "high", "high", "high", "high", "high", "high",
+                          "medium", "medium", "medium", "medium"])
         titles = " ".join(f["title"] for f in exposure)
         self.assertIn("open to the public", titles)
         self.assertIn("grants another account access", titles)
+        self.assertIn("Secret is readable by the public", titles)
+        self.assertIn("Lambda function can be invoked by anyone", titles)
+        self.assertIn("SQS queue is open to the public", titles)
 
 
 if __name__ == "__main__":
