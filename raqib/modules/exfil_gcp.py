@@ -1,7 +1,8 @@
 """GCP exfiltration checks: the mirror of S7aba's exfil_gcp.
 
-Data in GCP sits in Cloud Storage, Secret Manager, and BigQuery. A member that can
-read across any of them broadly can pull data out.
+Data in GCP sits in Cloud Storage, Secret Manager, and BigQuery. HMAC keys are
+interoperable credentials that read Cloud Storage from anywhere, outside the project
+audit, and a Cloud SQL export dumps a database to a bucket. Read only, never calls GCP.
 """
 
 from raqib.lib.common import _finding, _principal_label
@@ -20,6 +21,10 @@ def check(acct):
             caps.append("read objects in Cloud Storage")
         if acct.has_permission(p, "bigquery.tables.getdata"):
             caps.append("read BigQuery table data")
+        if acct.has_permission(p, "storage.hmackeys.create"):
+            caps.append("create storage HMAC keys, interoperable credentials that read Cloud Storage from anywhere")
+        if acct.has_permission(p, "cloudsql.instances.export"):
+            caps.append("export a Cloud SQL database to a bucket")
         if not caps:
             continue
         joined = caps[0] if len(caps) == 1 else ", ".join(caps[:-1]) + ", and " + caps[-1]

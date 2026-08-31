@@ -67,6 +67,13 @@ class TestAzureFindings(unittest.TestCase):
         sp = [p for p in acct.principals if p.name == "cross-sub-sp"][0]
         self.assertGreaterEqual(len(sp.assignments), 2)
 
+    def test_sas_and_disk_and_cosmos_exfil_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        details = " ".join(f["detail"] for f in findings if f["tactic"] == "exfiltration")
+        self.assertIn("SAS token", details)
+        self.assertIn("disk or snapshot", details)
+        self.assertIn("Cosmos DB keys", details)
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)

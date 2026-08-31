@@ -107,6 +107,18 @@
       "members": [
         "group:platform-team@example.com"
       ]
+    },
+    {
+      "role": "roles/storage.hmacKeyAdmin",
+      "members": [
+        "user:hmac-user@example.com"
+      ]
+    },
+    {
+      "role": "roles/cloudsql.editor",
+      "members": [
+        "user:db-exporter@example.com"
+      ]
     }
   ],
   "customRoles": [
