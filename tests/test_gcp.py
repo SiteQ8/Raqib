@@ -1,4 +1,4 @@
-import unittest, os, json
+import os, json, unittest
 from raqib import audit
 from raqib.models import gcp
 
@@ -6,41 +6,46 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def load(name):
-    with open(os.path.join(HERE, "samples", "gcp", name), "r", encoding="utf-8") as fh:
+    with open(os.path.join(HERE, "samples", "gcp", name)) as fh:
         return json.load(fh)
 
 
 class TestGcpModel(unittest.TestCase):
-    def test_owner_role_is_owner(self):
+    def test_owner_detected(self):
         acct = gcp.load(load("vulnerable.json"))
-        owner = [p for p in acct.principals if p.name == "founder@example.com"][0]
-        self.assertTrue(acct.is_owner(owner))
+        self.assertTrue(any(acct.is_owner(p) for p in acct.principals))
 
-    def test_custom_role_permissions_resolve(self):
-        acct = gcp.load({"bindings": [{"role": "projects/p/roles/r", "members": ["user:a@b.com"]}],
-                         "customRoles": [{"name": "projects/p/roles/r", "includedPermissions": ["storage.objects.get"]}]})
-        p = acct.principals[0]
-        self.assertTrue(acct.has_permission(p, "storage.objects.get"))
+    def test_custom_role_permissions_read(self):
+        acct = gcp.load(load("clean.json"))
+        p = [p for p in acct.principals if "reporting" in p.member][0]
+        self.assertTrue(acct.has_permission(p, "compute.instances.get"))
+        self.assertFalse(acct.has_permission(p, "storage.objects.get"))
 
-    def test_public_member_detected(self):
+    def test_public_member_flagged_kind(self):
         acct = gcp.load(load("vulnerable.json"))
-        self.assertTrue(any(p.is_public for p in acct.principals))
+        pub = [p for p in acct.principals if p.is_public]
+        self.assertTrue(pub)
+        self.assertEqual(pub[0].kind, "public")
 
 
 class TestGcpFindings(unittest.TestCase):
-    def test_vulnerable_covers_the_key_tactics(self):
-        findings, _, _ = audit(load("vulnerable.json"), cloud="gcp")
+    def test_vulnerable_covers_tactics(self):
+        findings, summary, _ = audit(load("vulnerable.json"))
+        self.assertEqual(summary["cloud"], "gcp")
         tactics = {f["tactic"] for f in findings}
         for t in ["privilege escalation", "lateral movement", "persistence", "exfiltration", "defense evasion", "reconnaissance"]:
             self.assertIn(t, tactics)
 
-    def test_public_binding_is_critical(self):
-        findings, _, _ = audit(load("vulnerable.json"), cloud="gcp")
-        pub = [f for f in findings if f["principal"]["name"] in ("allUsers",)][0]
-        self.assertEqual(pub["severity"], "critical")
+    def test_setiampolicy_is_high(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("rewrite the project IAM policy" in f["title"] and f["severity"] == "high" for f in findings))
+
+    def test_public_is_critical(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("granted to everyone" in f["title"] and f["severity"] == "critical" for f in findings))
 
     def test_clean_has_no_findings(self):
-        _, summary, _ = audit(load("clean.json"), cloud="gcp")
+        findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)
 
 

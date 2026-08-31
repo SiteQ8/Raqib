@@ -20,7 +20,7 @@ Raqib detects which cloud an export is from and reads it. Pass `--cloud` to say 
 
 Raqib reads each cloud and reports in its own terms:
 
-Azure, GCP, and Kubernetes reports look the same as the AWS one, in that cloud's language. See `docs/report-azure.png`, `docs/report-gcp.png`, and `docs/report-k8s.png`.
+Azure, GCP, and Kubernetes reports look the same as the AWS one, in that cloud's language. See `docs/screenshots/report-azure.png`, `docs/screenshots/report-gcp.png`, and `docs/screenshots/report-k8s.png`.
 
 ## Why it exists
 

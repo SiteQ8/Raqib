@@ -10,7 +10,7 @@ Raqib is now a cloud tool, not an AWS tool, and it is organized as a cloud by ta
 - New per cloud models: Azure RBAC role assignments and definitions, GCP IAM policy bindings with predefined and custom roles, Kubernetes roles and bindings
 - New checks across all six tactics for Azure, GCP, and Kubernetes
 - A --cloud flag, cloud auto detection, and a defends command that prints the whole cloud by tactic map
-- Sample exports and tests for every cloud, 91 tests
+- Sample exports and tests for every cloud, 98 tests
 
 ## 0.3.0
 

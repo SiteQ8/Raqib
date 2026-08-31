@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Raqib: read only AWS IAM exposure auditor</title>
-<meta name="description" content="Raqib reads an AWS IAM export and reports the privilege escalation paths, dangerous trust relationships, wildcard permissions, and stale credentials an attacker would exploit, each with the fix. Zero dependencies, never touches your account.">
+<title>Raqib: read only cloud exposure auditor for AWS, Azure, GCP, and Kubernetes</title>
+<meta name="description" content="Raqib reads a cloud authorization export, for AWS, Azure, GCP, or Kubernetes, and reports the privilege escalation, persistence, lateral movement, exfiltration, and anti forensics paths an attacker would use, each with the fix. Zero dependencies, never touches your account.">
 <style>
 :root{--bg:#0e1320;--panel:#161f31;--line:#26314a;--text:#e8edf6;--dim:#93a1ba;--accent:#4bd6c8}
 *{box-sizing:border-box}
@@ -26,7 +26,7 @@ li{margin:5px 0;color:#dce3f0}
 </style></head>
 <body><div class="wrap">
 <h1>Raqib</h1>
-<div class="tag">A read only lookout over your AWS IAM. It finds the paths an attacker would take, and tells you how to close them.</div>
+<div class="tag">A read only lookout over your cloud access, for AWS, Azure, GCP, and Kubernetes. It finds the paths an attacker would take, and tells you how to close them.</div>
 <div class="links">
   <a href="https://github.com/SiteQ8/Raqib">GitHub</a>
   <a href="report.html">Open a sample report</a>
@@ -41,6 +41,7 @@ li{margin:5px 0;color:#dce3f0}
 <p>This is Raqib run against a deliberately weak example account. <a href="report.html" style="color:var(--accent)">Open the live report.</a></p>
 
 <h2>Run it</h2>
+<p>Produce your cloud's authorization export and audit it. Raqib detects the cloud on its own. The AWS quickstart:</p>
 <pre>aws iam get-account-authorization-details &gt; export.json
 python3 raqib.py audit export.json
 
@@ -53,8 +54,7 @@ python3 raqib.py audit export.json --strict</pre>
 <p>It is a single zero dependency Python tool. It needs Python 3.8 or newer and nothing else.</p>
 
 <h2>Four clouds, six tactics</h2>
-<p>Raqib reads AWS, Azure, GCP, and Kubernetes, and reports the same six attacker tactics in each cloud's own terms. The checks are named by tactic and cloud, so the defense maps onto the offense one for one. Run <code>python3 raqib.py defends</code> for the map.</p>
-<p>Raqib's checks are organized by attacker tactic, the same six an offensive framework runs, so the defense maps onto the offense one for one. Run <code>python3 raqib.py defends</code> for the map.</p>
+<p>Raqib reads AWS, Azure, GCP, and Kubernetes, and reports the same six attacker tactics in each cloud's own terms. The checks are named by tactic and cloud, in a matrix that mirrors the offensive framework module for module. Run <code>python3 raqib.py defends</code> for the map.</p>
 <ul>
 <li><b>Reconnaissance</b>: the mapping done first, dumping the IAM configuration in AWS, Reader over a management group in Azure, project Viewer in GCP, cluster wide list in Kubernetes.</li>
 <li><b>Privilege escalation</b>: IAM escalation paths and administrator in AWS, Owner and writing role assignments in Azure, Owner and setIamPolicy and impersonation in GCP, cluster-admin and the escalate, bind, and impersonate verbs in Kubernetes.</li>
