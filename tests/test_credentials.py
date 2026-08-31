@@ -1,6 +1,6 @@
 import unittest
 import datetime
-from raqib import credentials
+from raqib.modules import credentials_aws as credentials
 
 NOW = datetime.datetime(2025, 8, 31)
 HEADER = ("user,arn,user_creation_time,password_enabled,password_last_used,password_last_changed,"

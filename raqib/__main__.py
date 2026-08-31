@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """The Raqib command line.
 
-  raqib audit <authorization-details.json> [options]
+  raqib audit <export.json> [--cloud aws|azure|gcp|k8s] [options]
 
-Read an IAM export and report the exposure in it. The export is the JSON that
-`aws iam get-account-authorization-details` produces, saved to a file. Raqib does
-not call AWS. It reads the file and reasons about it offline.
+Read a cloud authorization export and report the exposure in it. Raqib detects which
+cloud the export is from and reads it offline. It never calls a cloud.
 """
 
 import argparse
 import json
 import sys
 
-from . import __version__, audit, model
-from . import report as report_mod
-from . import rules as rules_mod
+from . import __version__, audit
+from .lib import report as report_mod
+from .lib import detect
+from .modules import privesc_aws
 
 BANNER = r"""
   ____                 _   _
@@ -22,7 +22,7 @@ BANNER = r"""
  | |_) |  / _` | / _` || | | '_ \
  |  _ <  | (_| || (_| || | | |_) |
  |_| \_\  \__,_| \__, ||_| |_.__/
-                    |_|   read only IAM exposure auditor
+                    |_|   read only cloud exposure auditor
 """
 
 
@@ -51,12 +51,14 @@ def cmd_audit(args):
             return 2
 
     try:
-        findings, summary, acct = audit(auth, credential_report_csv=cred_csv, max_key_age_days=args.max_key_age)
+        findings, summary, acct = audit(auth, cloud=args.cloud, credential_report_csv=cred_csv, max_key_age_days=args.max_key_age)
     except (ValueError, KeyError) as exc:
         sys.stderr.write("raqib: could not read the export: " + str(exc) + "\n")
         return 2
 
-    meta = {"title": args.title or "IAM exposure report", "source": args.export}
+    cloud = summary.get("cloud", "")
+    default_title = (cloud.upper() + " exposure report") if cloud else "Cloud exposure report"
+    meta = {"title": args.title or default_title, "source": args.export, "cloud": cloud}
 
     if args.json:
         sys.stdout.write(report_mod.as_json(findings, summary, meta) + "\n")
@@ -91,7 +93,8 @@ def cmd_audit(args):
 def cmd_paths(args):
     """List the escalation paths Raqib looks for."""
     print("Privilege escalation paths Raqib checks:\n")
-    for m in rules_mod.PRIVESC_METHODS:
+    print("These are the AWS IAM paths. Run defends for the full cloud by tactic map.\n")
+    for m in privesc_aws.PRIVESC_METHODS:
         actions = ", ".join(m["actions"])
         print("  " + m["id"])
         print("    needs: " + actions)
@@ -106,15 +109,16 @@ def cmd_paths(args):
 def build_parser():
     p = argparse.ArgumentParser(
         prog="raqib",
-        description="Read only AWS IAM exposure auditor. Reads an IAM export and reports the privilege escalation paths, trust risks, and wildcard permissions in it.",
-        epilog="Produce the export with: aws iam get-account-authorization-details > export.json",
+        description="Read only cloud exposure auditor for AWS, Azure, GCP, and Kubernetes. Reads an authorization export and reports the moves an intruder would make after a foothold.",
+        epilog="AWS: aws iam get-account-authorization-details > export.json  |  see the README for Azure, GCP, and Kubernetes",
     )
     p.add_argument("--version", action="version", version="raqib " + __version__)
     sub = p.add_subparsers(dest="command")
 
-    a = sub.add_parser("audit", help="audit an IAM export")
-    a.add_argument("export", help="path to get-account-authorization-details JSON")
-    a.add_argument("--credential-report", metavar="CSV", help="an IAM credential report CSV, for stale key and MFA findings")
+    a = sub.add_parser("audit", help="audit a cloud authorization export")
+    a.add_argument("export", help="path to the export JSON (AWS, Azure, GCP, or Kubernetes)")
+    a.add_argument("--cloud", choices=["aws", "azure", "gcp", "k8s"], help="which cloud the export is from (detected when omitted)")
+    a.add_argument("--credential-report", metavar="CSV", help="an AWS IAM credential report CSV, for stale key and MFA findings")
     a.add_argument("--max-key-age", type=int, default=90, metavar="DAYS", help="access key age that counts as stale (default 90)")
     a.add_argument("--json", action="store_true", help="write the findings as JSON")
     a.add_argument("--sarif", action="store_true", help="write SARIF for upload to code scanning")
@@ -134,34 +138,52 @@ def build_parser():
 
 
 COVERAGE = [
-    ("recon", "reconnaissance", "covered",
-     "Flags the one call that dumps the whole IAM configuration, and broad identity enumeration."),
-    ("privesc", "privilege escalation", "covered",
-     "The known IAM escalation paths, administrator by wildcard or attached policy, and service wildcards, read with permissions boundary awareness."),
-    ("persist", "persistence", "covered",
-     "Flags principals that can create a new user or role and grant it access, and a second active access key on a user."),
-    ("lateral", "lateral movement", "covered",
-     "Role trust policies that are assumable by anyone, trust an external account, or federate without a condition."),
-    ("exfil", "exfiltration", "partial",
-     "Flags the permission to read every secret, object, parameter, or key, and to share a snapshot out of the account. Public exposure through a resource policy is the next area to add."),
-    ("cleanup", "anti forensics", "covered",
-     "Flags principals, beyond the administrators already flagged, that can stop or delete CloudTrail, Config, GuardDuty, log groups, or Security Hub."),
+    ("recon", "reconnaissance",
+     {"aws": "the call that dumps the whole IAM configuration, and broad enumeration",
+      "azure": "Reader across a management group, and reading all role assignments",
+      "gcp": "Viewer over the project, a full read of every resource",
+      "k8s": "list or get across every namespace, a full map of the cluster"}),
+    ("privesc", "privilege escalation",
+     {"aws": "the known IAM escalation paths, administrator, and service wildcards, with boundary awareness",
+      "azure": "Owner, the ability to write role assignments, and elevateAccess",
+      "gcp": "Owner, setIamPolicy, and service account impersonation",
+      "k8s": "cluster-admin, and the escalate, bind, impersonate, and create pods verbs"}),
+    ("persist", "persistence",
+     {"aws": "creating a user or role and granting it access, and a second active access key",
+      "azure": "creating managed identities, and planting standing role assignments",
+      "gcp": "creating service account keys and service accounts",
+      "k8s": "creating cluster role bindings and admission webhooks"}),
+    ("lateral", "lateral movement",
+     {"aws": "role trust that is public, cross account, or federated without a condition",
+      "azure": "a service principal with reach across a subscription or higher",
+      "gcp": "a role granted to everyone, allUsers or allAuthenticatedUsers",
+      "k8s": "reading secrets across the cluster, which are service account tokens"}),
+    ("exfil", "exfiltration",
+     {"aws": "reading every secret, object, parameter, or key, and sharing a snapshot out",
+      "azure": "listing storage keys, and reading Key Vault secret values",
+      "gcp": "reading Cloud Storage, Secret Manager, and BigQuery broadly",
+      "k8s": "reading config maps and secrets across the cluster"}),
+    ("cleanup", "anti forensics",
+     {"aws": "stopping or deleting CloudTrail, Config, GuardDuty, log groups, or Security Hub",
+      "azure": "deleting diagnostic settings and Log Analytics workspaces",
+      "gcp": "deleting log sinks and logs",
+      "k8s": "deleting events and admission webhook configurations"}),
 ]
 
 
 def cmd_defends(args):
     print(BANNER)
-    print("S7aba runs offence in six module families. Raqib reads the same account for the")
-    print("defensive side of each, the exposure that lets the tactic work, and the fix.\n")
-    print("  S7aba module      Raqib coverage")
-    print("  " + "-" * 58)
-    for module, tactic, state, text in COVERAGE:
-        left = (module + "_*").ljust(16)
-        print("  " + left + "  " + tactic + "  [" + state + "]")
-        print("  " + " " * 16 + "  " + text)
+    print("S7aba runs offence across four clouds in six module families. Raqib reads the")
+    print("same clouds for the defensive side of each tactic. The module names match:\n")
+    print("  raqib/modules/{tactic}_{cloud}.py     mirrors     src/modules/{tactic}_{cloud}.sh\n")
+    clouds = ["aws", "azure", "gcp", "k8s"]
+    for module, tactic, per in COVERAGE:
+        print("  " + tactic + "   (" + module + "_*)")
+        for c in clouds:
+            print("    " + c.ljust(6) + " " + per[c])
         print()
-    print("Raqib reads an AWS IAM export offline. It reports the paths, not the use of them,")
-    print("and a clean report means the export named nothing these rules look for.")
+    print("Raqib reads an export offline. It reports the paths, not the use of them, and a")
+    print("clean report means the export named nothing these rules look for.")
     return 0
 
 

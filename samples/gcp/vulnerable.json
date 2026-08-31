@@ -1,0 +1,12 @@
+{
+  "bindings": [
+    {"role": "roles/owner", "members": ["user:founder@example.com"]},
+    {"role": "roles/iam.securityAdmin", "members": ["user:platform@example.com"]},
+    {"role": "roles/iam.serviceAccountTokenCreator", "members": ["user:deployer@example.com"]},
+    {"role": "roles/iam.serviceAccountKeyAdmin", "members": ["serviceAccount:ci@project.iam.gserviceaccount.com"]},
+    {"role": "roles/secretmanager.secretAccessor", "members": ["user:app-dev@example.com"]},
+    {"role": "roles/logging.admin", "members": ["user:ops@example.com"]},
+    {"role": "roles/viewer", "members": ["user:analyst@example.com"]},
+    {"role": "roles/storage.objectViewer", "members": ["allUsers"]}
+  ]
+}

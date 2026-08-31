@@ -1,29 +1,35 @@
-"""Raqib: a read only AWS IAM exposure auditor.
+"""Raqib: a read only cloud exposure auditor.
 
-It reads an IAM export the account owner produced and reports the privilege
-escalation paths, dangerous trust relationships, and wildcard permissions that an
-attacker with a foothold would look for, each with the fix that closes it. It never
-calls AWS and never touches an account.
+Raqib reads an authorization export the account owner produced and reports the moves
+an intruder would make after a foothold, gaining more permission, reaching the next
+principal, planting persistence, pulling data out, and turning off the logging that
+would record it. It covers AWS, Azure, GCP, and Kubernetes, and it never calls a
+cloud and never touches an account. You hand it a file, and it reasons about it
+offline.
 """
 
-from . import model, rules, report, credentials
+from raqib.lib import detect, common
+from raqib import modules
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 
-def audit(auth_details, credential_report_csv=None, max_key_age_days=90):
-    """Run every rule against a parsed authorization details object.
+def audit(export, cloud=None, credential_report_csv=None, max_key_age_days=90):
+    """Run the checks for the right cloud against a parsed authorization export.
 
-    auth_details is the parsed JSON from get-account-authorization-details.
-    credential_report_csv, when given, adds credential findings.
-    Returns (findings, summary, account).
+    cloud is one of aws, azure, gcp, k8s. When left out, Raqib detects it from the
+    shape of the export. Returns (findings, summary, account).
     """
-    acct = model.load(auth_details)
-    findings = rules.run(acct)
-    if credential_report_csv:
-        findings = findings + credentials.check(credential_report_csv, max_key_age_days=max_key_age_days)
-        order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-        findings.sort(key=lambda f: order.get(f["severity"], 9))
-    rules.apply_techniques(findings)
-    summary = rules.summarize(findings, acct)
+    cloud = cloud or detect.detect_cloud(export)
+    if cloud is None:
+        raise ValueError("could not tell which cloud this export is from; pass the cloud by hand")
+    runner = modules.RUNNERS.get(cloud)
+    if runner is None:
+        raise ValueError("unknown cloud: " + str(cloud))
+    if cloud == "aws":
+        acct, findings = runner(export, credential_report_csv=credential_report_csv, max_key_age_days=max_key_age_days)
+    else:
+        acct, findings = runner(export)
+    summary = common.summarize(findings, acct)
+    summary["cloud"] = cloud
     return findings, summary, acct

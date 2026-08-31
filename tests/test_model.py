@@ -1,5 +1,5 @@
 import unittest
-from raqib import model
+from raqib.models import aws as model
 
 
 class TestDocumentParsing(unittest.TestCase):

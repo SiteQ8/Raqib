@@ -9,8 +9,8 @@ A second active access key on an existing user is flagged from the credential re
 which is where that fact lives.
 """
 
-from raqib.checks.common import _finding, _principal_label
-from raqib.checks.privesc import _wild_services
+from raqib.lib.common import _finding, _principal_label
+from raqib.modules.privesc_aws import _wild_services
 
 
 def check_persistence(acct):

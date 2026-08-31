@@ -7,8 +7,8 @@ most of all the one call that dumps the entire IAM configuration, which is the s
 export Raqib itself reads.
 """
 
-from raqib.checks.common import _finding, _principal_label
-from raqib.checks.privesc import _wild_services
+from raqib.lib.common import _finding, _principal_label
+from raqib.modules.privesc_aws import _wild_services
 
 
 def check_reconnaissance(acct):

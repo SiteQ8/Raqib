@@ -1,6 +1,6 @@
 import unittest
-from raqib import model
-from raqib.checks import recon, exfil, persist
+from raqib.models import aws as model
+from raqib.modules import recon_aws as recon, exfil_aws as exfil, persist_aws as persist
 
 
 def acct_user(statements, arn="arn:aws:iam::111122223333:user/u"):
@@ -82,7 +82,7 @@ class TestAllSixTacticsPresent(unittest.TestCase):
         import os, json
         from raqib import audit
         here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        findings, _, _ = audit(json.load(open(os.path.join(here, "samples", "vulnerable-account.json"))))
+        findings, _, _ = audit(json.load(open(os.path.join(here, "samples", "aws", "vulnerable.json"))))
         tactics = {f["tactic"] for f in findings}
         for expected in ["reconnaissance", "privilege escalation", "persistence", "lateral movement", "exfiltration", "defense evasion"]:
             self.assertIn(expected, tactics)

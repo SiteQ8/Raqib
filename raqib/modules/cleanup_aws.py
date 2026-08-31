@@ -4,7 +4,7 @@ Finds principals, beyond the administrators already flagged, that can stop or de
 the account's own record keeping, the move an intruder makes to erase their tracks.
 """
 
-from raqib.checks.common import _finding, _principal_label
+from raqib.lib.common import _finding, _principal_label
 
 TAMPER_GROUPS = [
     ("stop or delete CloudTrail", ["cloudtrail:stoplogging", "cloudtrail:deletetrail"]),

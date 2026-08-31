@@ -27,3 +27,20 @@ def _as_list(value):
     if value is None:
         return []
     return value if isinstance(value, list) else [value]
+
+
+SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+
+
+def summarize(findings, account):
+    counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    for f in findings:
+        counts[f["severity"]] = counts.get(f["severity"], 0) + 1
+    principals_with = len({f["principal"]["arn"] for f in findings if f.get("principal")})
+    principals = len(getattr(account, "principals", []) or [])
+    return {
+        "counts": counts,
+        "total": len(findings),
+        "principals": principals,
+        "principals_with_findings": principals_with,
+    }

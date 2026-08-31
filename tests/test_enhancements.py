@@ -1,5 +1,7 @@
 import unittest
-from raqib import model, rules, report
+from raqib.models import aws as model
+from raqib.modules import aws_checks
+from raqib.lib import report
 
 
 def acct_user(statements, boundary_arn=None, policies=None, arn="arn:aws:iam::111122223333:user/u"):
@@ -20,24 +22,24 @@ def titles(findings):
 
 class TestLogTampering(unittest.TestCase):
     def test_stop_logging_is_flagged_high(self):
-        f = rules.run(acct_user([{"Effect": "Allow", "Action": ["cloudtrail:StopLogging"], "Resource": "*"}]))
+        f = aws_checks(acct_user([{"Effect": "Allow", "Action": ["cloudtrail:StopLogging"], "Resource": "*"}]))
         hit = [x for x in f if "weaken the audit trail" in x["title"]]
         self.assertTrue(hit)
         self.assertEqual(hit[0]["severity"], "high")
         self.assertEqual(hit[0]["technique"]["id"], "T1562.008")
 
     def test_scoped_tamper_is_medium(self):
-        f = rules.run(acct_user([{"Effect": "Allow", "Action": ["guardduty:DeleteDetector"], "Resource": "arn:aws:guardduty:us-east-1:111122223333:detector/x"}]))
+        f = aws_checks(acct_user([{"Effect": "Allow", "Action": ["guardduty:DeleteDetector"], "Resource": "arn:aws:guardduty:us-east-1:111122223333:detector/x"}]))
         hit = [x for x in f if "weaken the audit trail" in x["title"]]
         self.assertTrue(hit)
         self.assertEqual(hit[0]["severity"], "medium")
 
     def test_admin_is_not_double_reported_for_tampering(self):
-        f = rules.run(acct_user([{"Effect": "Allow", "Action": "*", "Resource": "*"}]))
+        f = aws_checks(acct_user([{"Effect": "Allow", "Action": "*", "Resource": "*"}]))
         self.assertFalse(any("weaken the audit trail" in t for t in titles(f)))
 
     def test_multiple_capabilities_are_grouped(self):
-        f = rules.run(acct_user([{"Effect": "Allow", "Action": ["cloudtrail:StopLogging", "config:StopConfigurationRecorder"], "Resource": "*"}]))
+        f = aws_checks(acct_user([{"Effect": "Allow", "Action": ["cloudtrail:StopLogging", "config:StopConfigurationRecorder"], "Resource": "*"}]))
         hit = [x for x in f if "weaken the audit trail" in x["title"]]
         self.assertEqual(len(hit), 1)
         self.assertIn("Config", hit[0]["detail"])
@@ -49,14 +51,14 @@ class TestBoundaryAwareness(unittest.TestCase):
                  "Document": {"Statement": [{"Effect": "Allow", "Action": "s3:*", "Resource": "*"}]}}]}]
 
     def test_boundary_downgrades_admin(self):
-        f = rules.run(acct_user([{"Effect": "Allow", "Action": "*", "Resource": "*"}],
+        f = aws_checks(acct_user([{"Effect": "Allow", "Action": "*", "Resource": "*"}],
                                  boundary_arn="arn:aws:iam::111122223333:policy/s3only", policies=self.BOUNDARY))
         admin = [x for x in f if "Administrator" in x["title"]][0]
         self.assertEqual(admin["severity"], "high")
         self.assertIn("permissions boundary", admin["detail"])
 
     def test_boundary_downgrades_a_path(self):
-        f = rules.run(acct_user([{"Effect": "Allow", "Action": "iam:CreatePolicyVersion", "Resource": "*"}],
+        f = aws_checks(acct_user([{"Effect": "Allow", "Action": "iam:CreatePolicyVersion", "Resource": "*"}],
                                  boundary_arn="arn:aws:iam::111122223333:policy/s3only", policies=self.BOUNDARY))
         hit = [x for x in f if "rewrite an attached policy" in x["title"]][0]
         self.assertEqual(hit["severity"], "medium")  # lowered from high by the boundary
@@ -65,14 +67,14 @@ class TestBoundaryAwareness(unittest.TestCase):
         allow_iam = [{"PolicyName": "iamok", "Arn": "arn:aws:iam::111122223333:policy/iamok",
                       "DefaultVersionId": "v1", "PolicyVersionList": [{"VersionId": "v1", "IsDefaultVersion": True,
                       "Document": {"Statement": [{"Effect": "Allow", "Action": "*", "Resource": "*"}]}}]}]
-        f = rules.run(acct_user([{"Effect": "Allow", "Action": "iam:CreatePolicyVersion", "Resource": "*"}],
+        f = aws_checks(acct_user([{"Effect": "Allow", "Action": "iam:CreatePolicyVersion", "Resource": "*"}],
                                  boundary_arn="arn:aws:iam::111122223333:policy/iamok", policies=allow_iam))
         hit = [x for x in f if "rewrite an attached policy" in x["title"]][0]
         self.assertEqual(hit["severity"], "high")
 
     def test_boundary_not_in_export_is_not_assumed(self):
         # boundary arn set but no document present -> cannot claim it caps anything
-        f = rules.run(acct_user([{"Effect": "Allow", "Action": "*", "Resource": "*"}],
+        f = aws_checks(acct_user([{"Effect": "Allow", "Action": "*", "Resource": "*"}],
                                  boundary_arn="arn:aws:iam::111122223333:policy/unknown"))
         admin = [x for x in f if "Administrator" in x["title"]][0]
         self.assertEqual(admin["severity"], "critical")
@@ -80,20 +82,20 @@ class TestBoundaryAwareness(unittest.TestCase):
 
 class TestTechniques(unittest.TestCase):
     def test_every_finding_has_a_technique(self):
-        f = rules.run(acct_user([{"Effect": "Allow", "Action": "*", "Resource": "*"}]))
+        f = aws_checks(acct_user([{"Effect": "Allow", "Action": "*", "Resource": "*"}]))
         self.assertTrue(all(x.get("technique", {}).get("id") for x in f))
 
     def test_trust_maps_to_trusted_relationship(self):
         acct = model.load({"RoleDetailList": [{"RoleName": "r", "Arn": "arn:aws:iam::1:role/r",
             "AssumeRolePolicyDocument": {"Statement": [{"Effect": "Allow", "Principal": {"AWS": "*"}, "Action": "sts:AssumeRole"}]},
             "RolePolicyList": [], "AttachedManagedPolicies": []}]})
-        f = rules.run(acct)
+        f = aws_checks(acct)
         self.assertEqual(f[0]["technique"]["id"], "T1199")
 
 
 class TestSarif(unittest.TestCase):
     def _findings(self):
-        return rules.run(acct_user([{"Effect": "Allow", "Action": "*", "Resource": "*"}]))
+        return aws_checks(acct_user([{"Effect": "Allow", "Action": "*", "Resource": "*"}]))
 
     def test_sarif_is_valid_2_1_0(self):
         import json
@@ -111,7 +113,7 @@ class TestSarif(unittest.TestCase):
 
 class TestPersistenceCredentials(unittest.TestCase):
     def test_two_active_keys_flagged(self):
-        from raqib import credentials
+        from raqib.modules import credentials_aws as credentials
         import datetime
         header = ("user,arn,user_creation_time,password_enabled,password_last_used,password_last_changed,"
                   "password_next_rotation,mfa_active,access_key_1_active,access_key_1_last_rotated,"
