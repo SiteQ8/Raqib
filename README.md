@@ -32,7 +32,7 @@ That is the whole thing. Point it at a cloud, read the exposure, change nothing.
 
 For AWS, `--credentials` adds what IAM policy cannot show: a root account with an active access key or no multi factor authentication, a console user without a second factor, and access keys that are old and still active. It reads the credential report, which describes the account and changes no principal. Pass `--max-key-age DAYS` to set what counts as old, and `--credential-report FILE` to read a report you already captured.
 
-For AWS, `--exposure` reads S3 and KMS resource policies and flags a bucket or a key left open to the public or another account: a bucket public through its policy, a bucket that grants another account access, a bucket without a full public access block, a KMS key policy that allows any principal, and a key that trusts an external account. This reads the resource policy, it never reads an object or decrypts anything. Pass `--resource-policies FILE` to read policies you already captured.
+For AWS, `--exposure` reads the resource policies of S3 buckets, SQS queues, SNS topics, Lambda functions, Secrets Manager secrets, and KMS keys, and flags any left open to the public or another account: a bucket public through its policy, a queue or topic anyone can use, a function anyone can invoke, a secret anyone can read, a KMS key policy that allows any principal, and any of these that grants an external account access. This reads the resource policy, it never reads an object, a message, a secret value, or decrypts anything. Pass `--resource-policies FILE` to read policies you already captured.
 
 Live scanning needs `jq` and the CLI for the cloud you are scanning (`aws`, `az`, `gcloud`, or `kubectl`), already signed in. Nothing else.
 
@@ -70,7 +70,7 @@ The checks are a cloud by tactic matrix under `src/modules`, named `{tactic}_{cl
 - Exfiltration: the permission to read secrets, objects, parameters, and keys broadly, listing storage keys, reading config maps and secrets across a cluster.
 - Anti forensics: the ability to stop or delete the account's own record keeping, in each cloud's logging.
 
-Every finding carries the MITRE ATT&CK technique it defends against. AWS is the deepest across all six tactics, with permissions boundary awareness; GCP privilege escalation now covers the documented escalation paths in depth; Azure and Kubernetes cover the primary paths and have room to grow. Exfiltration reads the permission to move data. A resource left open to the public through a resource policy is separate, and for AWS `--exposure` now reads that too.
+Every finding carries the MITRE ATT&CK technique it defends against. AWS is the deepest across all six tactics, with permissions boundary awareness; GCP privilege escalation now covers the documented escalation paths in depth; Azure and Kubernetes cover the primary paths and have room to grow. Exfiltration reads the permission to move data. A resource left open to the public through a resource policy is separate, and for AWS `--exposure` reads that across S3, SQS, SNS, Lambda, Secrets Manager, and KMS.
 
 ## Reviewing a saved export
 
@@ -98,7 +98,7 @@ The engine and the scanner report the same finding taxonomy, so a finding reads 
 
 A finding says what a permission would allow, not that it was used. Raqib reads configuration, not activity. It tells you that a principal could rewrite an attached policy, not that anyone did.
 
-A clean report means the export named nothing these rules look for. It does not mean the account is secure. Raqib checks the paths it knows about; it does not prove their absence everywhere. It reads AWS resource policies for S3 and KMS with `--exposure`, and does not yet read other resource policies, Azure policy, or organization and folder level bindings, which can widen or narrow real access.
+A clean report means the export named nothing these rules look for. It does not mean the account is secure. Raqib checks the paths it knows about; it does not prove their absence everywhere. It reads AWS resource policies for S3, SQS, SNS, Lambda, Secrets Manager, and KMS with `--exposure`, and does not yet read other resource policies, Azure policy, or organization and folder level bindings, which can widen or narrow real access.
 
 ## How it works
 

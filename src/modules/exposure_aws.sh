@@ -1,7 +1,8 @@
 # exposure_aws: resource policies that open a resource to the public or another
-# account. This reads what the IAM export cannot show, an S3 bucket or a KMS key left
-# open through its own resource policy. Read only: it inspects the policy, it never
-# reads an object or decrypts anything.
+# account, the exposure the IAM export cannot show. Reads S3 buckets, SQS queues,
+# SNS topics, Lambda functions, Secrets Manager secrets, and KMS keys, each through
+# its own resource policy. Read only: it inspects the policy, it never reads an
+# object, a message, a secret value, or decrypts anything.
 
 analyze_exposure_aws() {
   jq -c '
@@ -15,7 +16,25 @@ analyze_exposure_aws() {
       {id:$id, severity:$sev, title:$title, principal:{kind:$kind, name:$name, arn:$name},
        detail:$detail, fix:$fix, tactic:$tactic};
     (.account // "") as $acct
-    | (
+    | # a resource whose policy has no public access block: public via "*", else another account
+      def expose($items; $kind; $pubsev; $pubtitle; $pubdetail; $extsev; $exttitle):
+        [ $items[] as $r
+          | ($r.name) as $name
+          | allow_stmts($r.policy) as $stmts
+          | ( [ $stmts[] | select((principal_strings(.) | index("*")) != null) ] ) as $pub
+          | ( [ $stmts[] | . as $s
+                | (principal_strings($s) | map(select(test("^arn:aws:iam::[0-9]+:"))) | map(capture("::(?<a>[0-9]+):").a))
+                | map(select(. != $acct)) | .[] ] | unique ) as $ext
+          | if ( [ $pub[] | select(has_condition(.) | not) ] | length ) > 0 then
+              efind(("xp-" + ($kind|gsub(" ";"")) + "pub"); $pubsev; $pubtitle; $name; $kind;
+                ($name + " " + $pubdetail);
+                ("Restrict the " + $kind + " policy to the specific principals that must use it."); "public exposure")
+            elif (($ext | length) > 0) then
+              efind(("xp-" + ($kind|gsub(" ";"")) + "ext"); $extsev; $exttitle; $name; $kind;
+                ($name + " grants another account (" + ($ext | join(", ")) + ") access through its resource policy.");
+                "Confirm the other account should have this access, and scope the actions it can take."; "public exposure")
+            else empty end ];
+      (
         # ---- S3 buckets ----
         [ (.buckets // [])[] as $b
           | ($b.name) as $name
@@ -46,6 +65,14 @@ analyze_exposure_aws() {
                 ($name + " does not have all four public access block settings on, so a future ACL or policy could make it public without warning.");
                 "Turn on BlockPublicAcls, IgnorePublicAcls, BlockPublicPolicy, and RestrictPublicBuckets, ideally at the account level."; "public exposure")
             else empty end ]
+        + expose((.sqsQueues // []); "sqs queue"; "high"; "SQS queue is open to the public";
+            "has a queue policy that allows any principal, so anyone can send to or read from it."; "medium"; "SQS queue grants another account access")
+        + expose((.snsTopics // []); "sns topic"; "high"; "SNS topic is open to the public";
+            "has a topic policy that allows any principal, so anyone can publish to or subscribe to it."; "medium"; "SNS topic grants another account access")
+        + expose((.lambdaFunctions // []); "lambda function"; "high"; "Lambda function can be invoked by anyone";
+            "has a resource policy that allows any principal to invoke it."; "medium"; "Lambda function grants another account access")
+        + expose((.secrets // []); "secret"; "critical"; "Secret is readable by the public";
+            "has a resource policy that allows any principal to read it, exposing the secret value."; "high"; "Secret is shared with another account")
         +
         # ---- KMS keys ----
         [ (.kmsKeys // [])[] as $k
