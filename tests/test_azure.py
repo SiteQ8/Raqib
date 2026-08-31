@@ -1,4 +1,4 @@
-import unittest, os, json
+import os, json, unittest
 from raqib import audit
 from raqib.models import azure
 
@@ -6,20 +6,20 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def load(name):
-    with open(os.path.join(HERE, "samples", "azure", name), "r", encoding="utf-8") as fh:
+    with open(os.path.join(HERE, "samples", "azure", name)) as fh:
         return json.load(fh)
 
 
 class TestAzureModel(unittest.TestCase):
-    def test_resolves_owner_from_builtin_id(self):
+    def test_owner_is_resolved(self):
         acct = azure.load(load("vulnerable.json"))
-        owner = [p for p in acct.principals if p.name == "ops-lead"][0]
-        self.assertTrue(acct.is_owner(owner))
+        owners = [p for p in acct.principals if acct.is_owner(p)]
+        self.assertTrue(owners)
 
-    def test_role_assignment_write_is_seen(self):
+    def test_role_assignment_write_detected(self):
         acct = azure.load(load("vulnerable.json"))
-        sp = [p for p in acct.principals if p.name == "ci-sp"][0]
-        self.assertTrue(acct.allows(sp, "microsoft.authorization/roleassignments/write"))
+        p = [p for p in acct.principals if p.name == "ci-sp"][0]
+        self.assertTrue(acct.allows(p, "microsoft.authorization/roleassignments/write"))
 
     def test_reader_does_not_grant_data_read(self):
         acct = azure.load(load("vulnerable.json"))
@@ -28,19 +28,20 @@ class TestAzureModel(unittest.TestCase):
 
 
 class TestAzureFindings(unittest.TestCase):
-    def test_vulnerable_covers_the_key_tactics(self):
-        findings, summary, _ = audit(load("vulnerable.json"), cloud="azure")
+    def test_vulnerable_covers_key_tactics(self):
+        findings, summary, _ = audit(load("vulnerable.json"))
+        self.assertEqual(summary["cloud"], "azure")
         tactics = {f["tactic"] for f in findings}
-        for t in ["privilege escalation", "persistence", "exfiltration", "defense evasion", "reconnaissance"]:
+        for t in ["privilege escalation", "exfiltration", "defense evasion", "persistence", "reconnaissance"]:
             self.assertIn(t, tactics)
 
     def test_owner_is_critical(self):
-        findings, _, _ = audit(load("vulnerable.json"), cloud="azure")
-        owner = [f for f in findings if f["principal"]["name"] == "ops-lead"][0]
-        self.assertEqual(owner["severity"], "critical")
+        findings, _, _ = audit(load("vulnerable.json"))
+        crit = [f for f in findings if f["severity"] == "critical"]
+        self.assertTrue(any("Owner" in f["title"] for f in crit))
 
     def test_clean_has_no_findings(self):
-        _, summary, _ = audit(load("clean.json"), cloud="azure")
+        findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)
 
 

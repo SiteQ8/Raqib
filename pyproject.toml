@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
 authors = [{ name = "SiteQ8" }]
-keywords = ["aws", "iam", "security", "privilege-escalation", "cspm", "least-privilege", "blue-team"]
+keywords = ["aws", "azure", "gcp", "kubernetes", "iam", "rbac", "security", "privilege-escalation", "cspm", "least-privilege", "blue-team"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Information Technology",
