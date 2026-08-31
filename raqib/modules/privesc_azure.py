@@ -37,4 +37,22 @@ def check(acct):
                 "Limit Microsoft.Authorization/roleDefinitions/write to role administrators.",
                 "privilege escalation"))
             n += 1
+        if acct.allows(p, "microsoft.compute/virtualmachines/runcommand/action") or acct.allows(p, "microsoft.compute/virtualmachines/extensions/write"):
+            findings.append(_finding("kz" + str(n), "high", "Can run code on a VM as its managed identity", p,
+                f"{_principal_label(p)} can run a command or install an extension on a virtual machine, executing as the managed identity attached to that VM.",
+                "Restrict runCommand and extension writes, and avoid attaching privileged managed identities to general purpose VMs.",
+                "privilege escalation"))
+            n += 1
+        if acct.allows(p, "microsoft.automation/automationaccounts/runbooks/write"):
+            findings.append(_finding("kz" + str(n), "high", "Can run an Automation runbook as its managed identity", p,
+                f"{_principal_label(p)} can write and run an Automation runbook, which executes as the managed identity of the Automation account.",
+                "Restrict runbook writes, and scope the Automation account managed identity to what its runbooks need.",
+                "privilege escalation"))
+            n += 1
+        if acct.allows(p, "microsoft.managedidentity/userassignedidentities/assign/action"):
+            findings.append(_finding("kz" + str(n), "high", "Can assign a managed identity to a resource", p,
+                f"{_principal_label(p)} can assign a user assigned managed identity to a resource it controls, then run as that identity.",
+                "Restrict the assign action on user assigned managed identities to the members that provision them.",
+                "privilege escalation"))
+            n += 1
     return findings

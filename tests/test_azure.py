@@ -40,6 +40,16 @@ class TestAzureFindings(unittest.TestCase):
         crit = [f for f in findings if f["severity"] == "critical"]
         self.assertTrue(any("Owner" in f["title"] for f in crit))
 
+    def test_managed_identity_execution_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("run code on a VM as its managed identity" in f["title"] and f["severity"] == "high" for f in findings))
+        self.assertTrue(any("Automation runbook as its managed identity" in f["title"] and f["severity"] == "high" for f in findings))
+        self.assertTrue(any("assign a managed identity to a resource" in f["title"] and f["severity"] == "high" for f in findings))
+
+    def test_role_definition_write_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("write custom role definitions" in f["title"] and f["severity"] == "medium" for f in findings))
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)
