@@ -4,9 +4,9 @@ A read only lookout over your cloud access. Point Raqib at the cloud you are sig
 
 Raqib (راقب, one who watches over) is the defensive mirror of an offensive framework that runs those same six tactics across AWS, Azure, GCP, and Kubernetes. It reads who can do what, and reports it. It never creates, changes, or deletes anything, and it never reads the contents of a secret, an object, or a key.
 
-Live demo and a sample report: https://siteq8.github.io/Raqib/
+Live demo, an interactive report across all four clouds: https://siteq8.github.io/Raqib/report.html
 
-![A Raqib report listing findings by severity](docs/hero.png)
+![The Raqib explorer: findings across AWS, Azure, GCP, and Kubernetes, filtered by cloud, tactic, and severity](docs/report.png)
 
 ## Scan your cloud
 

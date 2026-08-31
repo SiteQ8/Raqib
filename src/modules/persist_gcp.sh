@@ -24,7 +24,7 @@ analyze_persist_gcp() {
             else empty end ),
           ( if has_permission($p; "cloudscheduler.jobs.create"; $c) then
               finding("pg-sched"; "medium"; "Can plant a scheduled job"; $p;
-                ($p.name + " can create Cloud Scheduler jobs, a timer an intruder can use to re-trigger a callback and return.");
+                ($p.name + " can create Cloud Scheduler jobs, a timer an intruder can use to trigger a callback again and return.");
                 "Limit cloudscheduler.jobs.create, and review scheduled jobs for unexpected targets."; "persistence")
             else empty end )
         end

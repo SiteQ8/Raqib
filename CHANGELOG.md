@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.13.0
+
+A rebuilt browser explorer, and a small text fix.
+
+- docs/report.html is now an interactive report across all four clouds, not a static AWS only page. It shows every finding the engine produces, with a cloud by tactic matrix and live filtering by cloud, attacker tactic, severity, and free text. The findings are written into the page, so it reads with no script and the script only adds the filtering
+- The landing page explorer and its version string now reflect the current build; the explorer had been showing an old, partial finding set. A new generator, docs/build_explorer.py, runs the engine over the samples and rebuilds both pages, so the docs cannot drift from the engine again
+- Fixed a hyphen in one finding text to match the house style
+- No change to the checks. 137 tests
+
+
 ## 0.12.0
 
 Deeper exfiltration coverage on Azure, GCP, and Kubernetes. With this, all four clouds cover the six tactics in depth, from privilege escalation through exfiltration.
@@ -26,7 +36,7 @@ Deeper lateral movement coverage on Azure, GCP, and Kubernetes, and a fix to the
 Deeper persistence coverage on Azure, GCP, and Kubernetes, bringing each closer to the AWS depth. The bash scanner and the Python engine gain the checks together.
 
 - Azure: adding a federated identity credential to a managed identity, which lets an external OIDC issuer authenticate as it with no secret to rotate, and creating an Automation account, a durable scheduled execution surface. Creating managed identities and planting role assignments are kept
-- GCP: setting the IAM policy on a service account to bind a controlled principal as a token creator, a stealthy back door, and planting a Cloud Scheduler job that re-triggers a callback. Service account keys and service accounts are kept
+- GCP: setting the IAM policy on a service account to bind a controlled principal as a token creator, a stealthy back door, and planting a Cloud Scheduler job that triggers a callback again. Service account keys and service accounts are kept
 - Kubernetes: creating role bindings across namespaces and creating service accounts, alongside the cluster role bindings and admission webhooks already covered
 - New sample principals and six tests. 127 tests, the two engines still in lockstep
 

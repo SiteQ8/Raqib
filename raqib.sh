@@ -10,7 +10,7 @@
 # secret, object, or key. It reads who can do what, and reports it.
 
 set -u
-RAQIB_VERSION="0.12.0"
+RAQIB_VERSION="0.13.0"
 RAQIB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck disable=SC1091
