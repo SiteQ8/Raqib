@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Raqib: read only AWS IAM exposure auditor</title>
+<meta name="description" content="Raqib reads an AWS IAM export and reports the privilege escalation paths, dangerous trust relationships, wildcard permissions, and stale credentials an attacker would exploit, each with the fix. Zero dependencies, never touches your account.">
+<style>
+:root{--bg:#0e1320;--panel:#161f31;--line:#26314a;--text:#e8edf6;--dim:#93a1ba;--accent:#4bd6c8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:820px;margin:0 auto;padding:40px 22px 60px}
+h1{font-size:30px;margin:0 0 6px;letter-spacing:.2px}
+.tag{color:var(--dim);font-size:16px;margin-bottom:8px}
+.links a{color:var(--accent);text-decoration:none;margin-right:18px;font-size:14px}
+.links a:hover{text-decoration:underline}
+h2{font-size:19px;margin:34px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+p{color:#dce3f0}
+code,pre{font-family:ui-monospace,Menlo,Consolas,monospace}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;font-size:13.5px}
+code{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:13px}
+.shot{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:14px 0}
+.shot img{display:block;width:100%}
+ul{padding-left:20px}
+li{margin:5px 0;color:#dce3f0}
+.note{color:var(--dim);font-size:13.5px;border-top:1px solid var(--line);padding-top:16px;margin-top:34px}
+.mark{color:var(--accent);font-weight:600}
+</style></head>
+<body><div class="wrap">
+<h1>Raqib</h1>
+<div class="tag">A read only lookout over your AWS IAM. It finds the paths an attacker would take, and tells you how to close them.</div>
+<div class="links">
+  <a href="https://github.com/SiteQ8/Raqib">GitHub</a>
+  <a href="report.html">Open a sample report</a>
+</div>
+
+<h2>What it does</h2>
+<p>Raqib reads the IAM export your account already produces and reports the exposure in it: the privilege escalation paths a principal could walk, role trust policies that let the wrong people in, wildcard permissions on sensitive services, and, with a credential report, the stale keys and console logins without a second factor. Each finding says why it is exploitable and the change that closes it.</p>
+<p>It never calls AWS and never touches your account. You hand it a file, and it reasons about that file offline. Nothing to trust it with beyond a JSON export you control.</p>
+
+<h2>A sample report</h2>
+<div class="shot"><a href="report.html"><img src="hero.png" alt="A Raqib report listing IAM findings by severity"></a></div>
+<p>This is Raqib run against a deliberately weak example account. <a href="report.html" style="color:var(--accent)">Open the live report.</a></p>
+
+<h2>Run it</h2>
+<pre>aws iam get-account-authorization-details &gt; export.json
+python3 raqib.py audit export.json
+
+# add credential findings, and write a shareable HTML report
+aws iam generate-credential-report &amp;&amp; aws iam get-credential-report --query Content --output text | base64 --decode &gt; creds.csv
+python3 raqib.py audit export.json --credential-report creds.csv -o report.html
+
+# gate a pipeline: exit 1 on a critical or high finding
+python3 raqib.py audit export.json --strict</pre>
+<p>It is a single zero dependency Python tool. It needs Python 3.8 or newer and nothing else.</p>
+
+<h2>What it looks for</h2>
+<ul>
+<li>The known IAM privilege escalation paths: rewriting an attached policy, attaching an administrator policy, setting a login password on another user, minting access keys, adding yourself to a group, rewriting a role trust policy, and passing a powerful role to EC2, Lambda, Glue, CloudFormation, CodeBuild, and more.</li>
+<li>Role trust policies that are assumable by anyone, trust an external account, or federate without a condition.</li>
+<li>Administrator by wildcard, and full control of sensitive services through a service wildcard.</li>
+<li>Root access keys, console users without multi factor authentication, and access keys that are old and still active.</li>
+</ul>
+
+<div class="note">A finding says what a permission would allow, not that it was used. A clean report means the export named nothing these rules look for, not that the account is secure. Read only analysis by <span class="mark">Raqib</span>.</div>
+</div></body></html>
