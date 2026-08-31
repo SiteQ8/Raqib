@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.14.0
+
+Deeper reconnaissance and defense evasion, completing the six tactics in depth on every cloud.
+
+- GCP reconnaissance: reading the project IAM policy, which enumerates every member and the role they hold, the same map the AWS check flags. Viewer is kept
+- Kubernetes reconnaissance: reading the cluster RBAC, the roles and bindings that map who can do what. Reading across the whole cluster is kept
+- GCP defense evasion: redirecting log routing by updating a sink, and deleting alert policies so nothing fires, alongside deleting sinks and logs
+- Azure defense evasion: lowering the Microsoft Defender for Cloud plan, which turns off threat detection, alongside deleting diagnostic settings and Log Analytics workspaces
+- The browser explorer and the defends map reflect the new checks. New sample principals and four tests. 141 tests, the two engines in lockstep
+
+
 ## 0.13.0
 
 A rebuilt browser explorer, and a small text fix.

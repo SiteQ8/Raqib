@@ -93,6 +93,14 @@ class TestGcpFindings(unittest.TestCase):
         findings, _, _ = audit(load("vulnerable.json"))
         self.assertTrue(any("export a Cloud SQL database" in f["detail"] and f["tactic"] == "exfiltration" for f in findings))
 
+    def test_read_iam_policy_recon_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("read the project IAM policy" in f["title"] and f["tactic"] == "reconnaissance" for f in findings))
+
+    def test_delete_alerting_defense_evasion_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("alerting policies" in f["detail"] and f["tactic"] == "defense evasion" for f in findings))
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)

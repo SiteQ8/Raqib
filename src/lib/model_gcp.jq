@@ -28,7 +28,9 @@ def role_permissions:
     "roles/cloudsql.editor": ["cloudsql.instances.export"],
     "roles/secretmanager.secretaccessor": ["secretmanager.versions.access"],
     "roles/bigquery.dataviewer": ["bigquery.tables.getdata"],
-    "roles/logging.admin": ["logging.sinks.delete","logging.logs.delete"],
+    "roles/logging.admin": ["logging.sinks.delete","logging.logs.delete","logging.sinks.update"],
+    "roles/monitoring.admin": ["monitoring.alertpolicies.delete"],
+    "roles/iam.securityreviewer": ["resourcemanager.projects.getiampolicy"],
     "roles/viewer": ["*read*"]
   };
 

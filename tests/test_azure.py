@@ -74,6 +74,10 @@ class TestAzureFindings(unittest.TestCase):
         self.assertIn("disk or snapshot", details)
         self.assertIn("Cosmos DB keys", details)
 
+    def test_defender_downgrade_defense_evasion_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("Microsoft Defender for Cloud" in f["detail"] and f["tactic"] == "defense evasion" for f in findings))
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)

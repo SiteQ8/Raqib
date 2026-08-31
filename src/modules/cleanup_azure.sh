@@ -5,7 +5,8 @@ analyze_cleanup_azure() {
         else
           ( [ (if allows($p; "microsoft.insights/diagnosticsettings/delete") then "delete diagnostic settings" else empty end),
               (if allows($p; "microsoft.operationalinsights/workspaces/delete") then "delete Log Analytics workspaces" else empty end),
-              (if allows($p; "microsoft.insights/activitylogalerts/delete") then "delete activity log alerts" else empty end) ] ) as $caps
+              (if allows($p; "microsoft.insights/activitylogalerts/delete") then "delete activity log alerts" else empty end),
+              (if allows($p; "microsoft.security/pricings/write") then "lower the Microsoft Defender for Cloud plan, turning off threat detection" else empty end) ] ) as $caps
           | if (($caps|length)==0) then empty
             else ( if ($caps|length)==1 then $caps[0] else ($caps[:-1]|join(", ")) + ", and " + $caps[-1] end ) as $joined
               | finding("ez0"; "high"; "Can weaken the audit trail"; $p;

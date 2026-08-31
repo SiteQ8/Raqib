@@ -119,6 +119,18 @@
       "members": [
         "user:db-exporter@example.com"
       ]
+    },
+    {
+      "role": "roles/iam.securityReviewer",
+      "members": [
+        "user:security-reviewer@example.com"
+      ]
+    },
+    {
+      "role": "roles/monitoring.admin",
+      "members": [
+        "user:monitoring-admin@example.com"
+      ]
     }
   ],
   "customRoles": [
