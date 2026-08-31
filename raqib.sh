@@ -30,33 +30,31 @@ CLOUDS=(aws azure gcp k8s)
 
 banner() {
   printf '%s' "$C_CYAN"
-  cat <<'ART'
-   ____              _  _
-  |  _ \ __ _  __ _ (_)| |__
-  | |_) / _` |/ _` || || '_ \
-  |  _ < (_| | (_| || || |_) |
-  |_| \_\__,_|\__, ||_||_.__/
-                 |_|
-ART
+  printf '%s\n' \
+'   ____              _  _' \
+'  |  _ \ __ _  __ _ (_)| |__' \
+'  | |_) / _` |/ _` || || '\''_ \' \
+'  |  _ < (_| | (_| || || |_) |' \
+'  |_| \_\__,_|\__, ||_||_.__/' \
+'                 |_|'
   printf '%s' "$C_RESET"
   printf '  %sread only cloud exposure auditor%s   %sv%s%s\n' "$C_DIM" "$C_RESET" "$C_DIM" "$RAQIB_VERSION" "$C_RESET"
   printf '  %sreads your cloud, reports the exposure, changes nothing%s\n\n' "$C_DIM" "$C_RESET"
 }
 
 usage() {
-  cat <<USAGE
-Usage:
-  ./raqib.sh [scan] [--cloud aws|azure|gcp|k8s] [--strict] [--json]
-             scan the cloud you are signed in to, live, read only. This is the default.
-  ./raqib.sh scan --offline EXPORT.json [--cloud CLOUD] [--strict] [--json]
-             read a saved export instead of calling a cloud, for air gapped review.
-  ./raqib.sh defends
-             print the whole cloud by tactic map of what Raqib checks.
-
-Notes:
-  Live scanning needs jq and the CLI for the cloud you scan (aws, az, gcloud, kubectl),
-  already signed in. Raqib only ever runs read only enumeration calls.
-USAGE
+  printf '%s\n' \
+'Usage:' \
+'  ./raqib.sh [scan] [--cloud aws|azure|gcp|k8s] [--strict] [--json]' \
+'             scan the cloud you are signed in to, live, read only. This is the default.' \
+'  ./raqib.sh scan --offline EXPORT.json [--cloud CLOUD] [--strict] [--json]' \
+'             read a saved export instead of calling a cloud, for air gapped review.' \
+'  ./raqib.sh defends' \
+'             print the whole cloud by tactic map of what Raqib checks.' \
+'' \
+'Notes:' \
+'  Live scanning needs jq and the CLI for the cloud you scan (aws, az, gcloud, kubectl),' \
+'  already signed in. Raqib only ever runs read only enumeration calls.'
 }
 
 # run every tactic module for one cloud against a gathered or saved export
