@@ -20,6 +20,8 @@ def check(acct):
             caps.append("delete Log Analytics workspaces")
         if acct.allows(p, "microsoft.insights/activitylogalerts/delete"):
             caps.append("delete activity log alerts")
+        if acct.allows(p, "microsoft.security/pricings/write"):
+            caps.append("lower the Microsoft Defender for Cloud plan, turning off threat detection")
         if not caps:
             continue
         joined = caps[0] if len(caps) == 1 else ", ".join(caps[:-1]) + ", and " + caps[-1]

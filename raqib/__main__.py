@@ -206,8 +206,8 @@ COVERAGE = [
     ("recon", "reconnaissance",
      {"aws": "the call that dumps the whole IAM configuration, and broad enumeration",
       "azure": "Reader across a management group, and reading all role assignments",
-      "gcp": "Viewer over the project, a full read of every resource",
-      "k8s": "list or get across every namespace, a full map of the cluster"}),
+      "gcp": "Viewer over the project, a full read of every resource, and reading the project IAM policy",
+      "k8s": "list or get across every namespace, and reading the cluster RBAC, the map of who can do what"}),
     ("privesc", "privilege escalation",
      {"aws": "the known IAM escalation paths, administrator, and service wildcards, with boundary awareness",
       "azure": "Owner, writing role assignments or role definitions, elevateAccess, and running as a managed identity via a VM, a runbook, or an identity assignment",
@@ -230,8 +230,8 @@ COVERAGE = [
       "k8s": "reading config maps and secrets across the cluster, and reading pod logs"}),
     ("cleanup", "anti forensics",
      {"aws": "stopping or deleting CloudTrail, Config, GuardDuty, log groups, or Security Hub",
-      "azure": "deleting diagnostic settings and Log Analytics workspaces",
-      "gcp": "deleting log sinks and logs",
+      "azure": "deleting diagnostic settings and Log Analytics workspaces, and lowering the Defender for Cloud plan",
+      "gcp": "deleting log sinks and logs, redirecting a sink, and deleting alert policies",
       "k8s": "deleting events and admission webhook configurations"}),
 ]
 

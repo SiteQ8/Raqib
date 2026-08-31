@@ -702,6 +702,45 @@
           "name": "log-reader-user"
         }
       ]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {
+        "name": "rbac-viewer"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "rbac.authorization.k8s.io"
+          ],
+          "resources": [
+            "clusterroles",
+            "clusterrolebindings",
+            "roles",
+            "rolebindings"
+          ],
+          "verbs": [
+            "get",
+            "list"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "ClusterRoleBinding",
+      "metadata": {
+        "name": "b-rbacview"
+      },
+      "roleRef": {
+        "kind": "ClusterRole",
+        "name": "rbac-viewer"
+      },
+      "subjects": [
+        {
+          "kind": "User",
+          "name": "rbac-viewer-user"
+        }
+      ]
     }
   ]
 }

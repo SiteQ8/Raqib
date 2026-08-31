@@ -1,7 +1,8 @@
 """GCP reconnaissance checks: the mirror of S7aba's recon_gcp.
 
-Viewer over a project is a full read of every resource in it, the map an attacker
-draws before choosing a target.
+Viewer over a project is a full read of every resource in it. Reading the IAM policy
+enumerates every member and the roles they hold. Both are the map an attacker draws
+before choosing a target. Read only, never calls GCP.
 """
 
 from raqib.lib.common import _finding, _principal_label
@@ -17,6 +18,12 @@ def check(acct):
             findings.append(_finding("rg" + str(n), "low", "Viewer over the project", p,
                 f"{_principal_label(p)} can read every resource in the project, a full map of what is there.",
                 "Grant read access at the narrowest scope a task needs rather than project wide Viewer.",
+                "reconnaissance"))
+            n += 1
+        elif acct.has_permission(p, "resourcemanager.projects.getiampolicy"):
+            findings.append(_finding("rg" + str(n), "low", "Can read the project IAM policy", p,
+                f"{_principal_label(p)} can read the project IAM policy, every member and the roles they hold, the map an intruder draws before choosing a target.",
+                "Limit resourcemanager.projects.getIamPolicy to the members that audit access.",
                 "reconnaissance"))
             n += 1
     return findings

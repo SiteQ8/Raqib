@@ -169,6 +169,16 @@
         "roleName": "Cosmos Key Reader",
         "scope": "/subscriptions/sub-1/resourceGroups/data"
       }
+    },
+    {
+      "properties": {
+        "principalId": "hhhh-def",
+        "principalType": "User",
+        "principalName": "defender-downgrader",
+        "roleDefinitionId": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/def-role",
+        "roleName": "Defender Downgrader",
+        "scope": "/subscriptions/sub-1"
+      }
     }
   ],
   "roleDefinitions": [
@@ -380,6 +390,22 @@
           {
             "actions": [
               "Microsoft.DocumentDB/databaseAccounts/listKeys/action"
+            ],
+            "notActions": [],
+            "dataActions": [],
+            "notDataActions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/def-role",
+      "properties": {
+        "roleName": "Defender Downgrader",
+        "permissions": [
+          {
+            "actions": [
+              "Microsoft.Security/pricings/write"
             ],
             "notActions": [],
             "dataActions": [],

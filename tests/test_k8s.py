@@ -81,6 +81,10 @@ class TestK8sFindings(unittest.TestCase):
         findings, _, _ = audit(load("vulnerable.json"))
         self.assertTrue(any("read pod logs" in f["detail"] and f["tactic"] == "exfiltration" for f in findings))
 
+    def test_read_rbac_recon_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("read the cluster RBAC" in f["title"] and f["tactic"] == "reconnaissance" for f in findings))
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)
