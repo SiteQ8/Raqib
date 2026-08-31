@@ -14,8 +14,8 @@ key left open to the public through a resource policy. That resource policy expo
 is not carried in the authorization details and is a separate check to come.
 """
 
-from raqib.checks.common import _finding, _principal_label
-from raqib.checks.privesc import _wild_services
+from raqib.lib.common import _finding, _principal_label
+from raqib.modules.privesc_aws import _wild_services
 
 # Each capability: a label, the actions that grant it, and how serious it is when
 # held over every resource.

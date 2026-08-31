@@ -33,8 +33,8 @@ li{margin:5px 0;color:#dce3f0}
 </div>
 
 <h2>What it does</h2>
-<p>Raqib reads the IAM export your account already produces and reports the exposure in it, organized by the moves an intruder makes after a foothold. It is built as the mirror of an offensive toolkit: for each tactic an attacker runs, Raqib reads the account for the weakness that lets it work, and tells you the change that closes it.</p>
-<p>It never calls AWS and never touches your account. You hand it a file, and it reasons about that file offline. Nothing to trust it with beyond a JSON export you control.</p>
+<p>Raqib reads the authorization export your account already produces, for AWS, Azure, GCP, or Kubernetes, and reports the exposure in it, organized by the moves an intruder makes after a foothold. It is built as the mirror of an offensive toolkit that runs across the same four clouds: for each tactic an attacker runs, Raqib reads the account for the weakness that lets it work, and tells you the change that closes it.</p>
+<p>It never calls a cloud and never touches your account. You hand it a file, and it reasons about that file offline. Nothing to trust it with beyond a JSON export you control.</p>
 
 <h2>A sample report</h2>
 <div class="shot"><a href="report.html"><img src="hero.png" alt="A Raqib report listing IAM findings by severity"></a></div>
@@ -52,17 +52,18 @@ python3 raqib.py audit export.json --credential-report creds.csv -o report.html
 python3 raqib.py audit export.json --strict</pre>
 <p>It is a single zero dependency Python tool. It needs Python 3.8 or newer and nothing else.</p>
 
-<h2>The six tactics, read for defense</h2>
+<h2>Four clouds, six tactics</h2>
+<p>Raqib reads AWS, Azure, GCP, and Kubernetes, and reports the same six attacker tactics in each cloud's own terms. The checks are named by tactic and cloud, so the defense maps onto the offense one for one. Run <code>python3 raqib.py defends</code> for the map.</p>
 <p>Raqib's checks are organized by attacker tactic, the same six an offensive framework runs, so the defense maps onto the offense one for one. Run <code>python3 raqib.py defends</code> for the map.</p>
 <ul>
-<li><b>Reconnaissance</b>: the one call that dumps the entire IAM configuration, and broad identity enumeration, the mapping an attacker does first.</li>
-<li><b>Privilege escalation</b>: the known IAM escalation paths, administrator by wildcard or attached policy, and full control of a sensitive service, read with permissions boundary awareness.</li>
-<li><b>Persistence</b>: principals that can create a new user or role and grant it access, and a second active access key left on a user.</li>
-<li><b>Lateral movement</b>: role trust policies that are assumable by anyone, trust an external account, or federate without a condition.</li>
-<li><b>Exfiltration</b>: the permission to read every secret, object, parameter, or key, and to share a snapshot out of the account.</li>
-<li><b>Anti forensics</b>: principals, beyond the administrators already flagged, that can stop or delete CloudTrail, Config, GuardDuty, log groups, or Security Hub.</li>
+<li><b>Reconnaissance</b>: the mapping done first, dumping the IAM configuration in AWS, Reader over a management group in Azure, project Viewer in GCP, cluster wide list in Kubernetes.</li>
+<li><b>Privilege escalation</b>: IAM escalation paths and administrator in AWS, Owner and writing role assignments in Azure, Owner and setIamPolicy and impersonation in GCP, cluster-admin and the escalate, bind, and impersonate verbs in Kubernetes.</li>
+<li><b>Persistence</b>: creating an identity and granting it access, creating service account keys, creating cluster role bindings and admission webhooks.</li>
+<li><b>Lateral movement</b>: trust that lets the wrong caller in, a role granted to everyone, a service principal with broad reach, reading secrets that hold service account tokens.</li>
+<li><b>Exfiltration</b>: reading secrets, objects, parameters, and keys broadly, listing storage keys, reading config maps and secrets across a cluster.</li>
+<li><b>Anti forensics</b>: stopping or deleting the account's own logging, in each cloud.</li>
 </ul>
-<p>Every finding carries the MITRE ATT&amp;CK technique it defends against.</p>
+<p>Every finding carries the MITRE ATT&amp;CK technique it defends against. AWS is the deepest today; Azure, GCP, and Kubernetes cover the primary paths and have room to grow.</p>
 
 <div class="note">A finding says what a permission would allow, not that it was used. A clean report means the export named nothing these rules look for, not that the account is secure. Read only analysis by <span class="mark">Raqib</span>.</div>
 </div></body></html>

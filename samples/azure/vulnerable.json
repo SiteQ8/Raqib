@@ -1,0 +1,14 @@
+{
+  "roleAssignments": [
+    {"properties": {"principalId": "11111111-aaaa", "principalType": "User", "principalName": "ops-lead", "roleDefinitionId": "/providers/Microsoft.Authorization/roleDefinitions/8e3af657-a8ff-443c-a75c-2fe8c4bcb635", "roleName": "Owner", "scope": "/subscriptions/sub-1"}},
+    {"properties": {"principalId": "22222222-bbbb", "principalType": "ServicePrincipal", "principalName": "ci-sp", "roleDefinitionId": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/role-grant", "roleName": "Access Granter", "scope": "/subscriptions/sub-1"}},
+    {"properties": {"principalId": "33333333-cccc", "principalType": "User", "principalName": "storage-user", "roleDefinitionId": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/storage-keys", "roleName": "Storage Key Reader", "scope": "/subscriptions/sub-1/resourceGroups/data"}},
+    {"properties": {"principalId": "44444444-dddd", "principalType": "User", "principalName": "log-eraser", "roleDefinitionId": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/log-ops", "roleName": "Log Operator", "scope": "/subscriptions/sub-1"}},
+    {"properties": {"principalId": "55555555-eeee", "principalType": "User", "principalName": "read-only", "roleDefinitionId": "/providers/Microsoft.Authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7", "roleName": "Reader", "scope": "/providers/Microsoft.Management/managementGroups/root"}}
+  ],
+  "roleDefinitions": [
+    {"id": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/role-grant", "properties": {"roleName": "Access Granter", "permissions": [{"actions": ["Microsoft.Authorization/roleAssignments/write", "Microsoft.Resources/subscriptions/resourceGroups/read"], "notActions": [], "dataActions": [], "notDataActions": []}]}},
+    {"id": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/storage-keys", "properties": {"roleName": "Storage Key Reader", "permissions": [{"actions": ["Microsoft.Storage/storageAccounts/listkeys/action", "Microsoft.Storage/storageAccounts/read"], "notActions": [], "dataActions": [], "notDataActions": []}]}},
+    {"id": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/log-ops", "properties": {"roleName": "Log Operator", "permissions": [{"actions": ["Microsoft.Insights/diagnosticSettings/delete", "Microsoft.OperationalInsights/workspaces/delete"], "notActions": [], "dataActions": [], "notDataActions": []}]}}
+  ]
+}

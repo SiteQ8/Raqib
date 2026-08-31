@@ -5,7 +5,7 @@ escalation paths, administrator by wildcard or attached policy, and full control
 sensitive service, read with awareness of any permissions boundary that would cap it.
 """
 
-from raqib.checks.common import _finding, _principal_label, _as_list
+from raqib.lib.common import _finding, _principal_label, _as_list
 
 PRIVESC_METHODS = [
     {

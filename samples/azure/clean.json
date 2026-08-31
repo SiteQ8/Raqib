@@ -1,0 +1,10 @@
+{
+  "roleAssignments": [
+    {"properties": {"principalId": "aaaa", "principalType": "User", "principalName": "app-reader", "roleDefinitionId": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/vm-read", "roleName": "VM Reader", "scope": "/subscriptions/sub-1/resourceGroups/app"}},
+    {"properties": {"principalId": "bbbb", "principalType": "ServicePrincipal", "principalName": "deploy-sp", "roleDefinitionId": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/web-deploy", "roleName": "Web Deployer", "scope": "/subscriptions/sub-1/resourceGroups/app"}}
+  ],
+  "roleDefinitions": [
+    {"id": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/vm-read", "properties": {"roleName": "VM Reader", "permissions": [{"actions": ["Microsoft.Compute/virtualMachines/read"], "notActions": [], "dataActions": [], "notDataActions": []}]}},
+    {"id": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/web-deploy", "properties": {"roleName": "Web Deployer", "permissions": [{"actions": ["Microsoft.Web/sites/read", "Microsoft.Web/sites/write"], "notActions": [], "dataActions": [], "notDataActions": []}]}}
+  ]
+}

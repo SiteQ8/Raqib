@@ -4,7 +4,7 @@ Reads role trust policies for the ones that let the wrong caller in, roles assum
 by anyone, roles that trust an external account, and federated trust with no condition.
 """
 
-from raqib.checks.common import _finding, _principal_label, _account_id, _as_list
+from raqib.lib.common import _finding, _principal_label, _account_id, _as_list
 
 def check_trust(acct):
     findings = []

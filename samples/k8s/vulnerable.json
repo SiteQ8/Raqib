@@ -1,0 +1,60 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "kind": "ClusterRole",
+      "metadata": {"name": "cluster-admin"},
+      "rules": [{"apiGroups": ["*"], "resources": ["*"], "verbs": ["*"]}]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {"name": "rbac-editor"},
+      "rules": [{"apiGroups": ["rbac.authorization.k8s.io"], "resources": ["clusterroles", "roles"], "verbs": ["create", "update", "escalate", "bind"]}]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {"name": "impersonator"},
+      "rules": [{"apiGroups": [""], "resources": ["users", "groups", "serviceaccounts"], "verbs": ["impersonate"]}]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {"name": "secret-reader"},
+      "rules": [{"apiGroups": [""], "resources": ["secrets"], "verbs": ["get", "list"]}]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {"name": "pod-creator"},
+      "rules": [{"apiGroups": [""], "resources": ["pods"], "verbs": ["create"]}]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {"name": "webhook-admin"},
+      "rules": [{"apiGroups": ["admissionregistration.k8s.io"], "resources": ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"], "verbs": ["create", "delete"]}]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {"name": "viewer-all"},
+      "rules": [{"apiGroups": ["*"], "resources": ["*"], "verbs": ["get", "list", "watch"]}]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {"name": "config-reader"},
+      "rules": [{"apiGroups": [""], "resources": ["configmaps"], "verbs": ["get", "list"]}]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {"name": "event-cleaner"},
+      "rules": [{"apiGroups": [""], "resources": ["events"], "verbs": ["delete"]}]
+    },
+    {"kind": "ClusterRoleBinding", "metadata": {"name": "b-admin"}, "roleRef": {"kind": "ClusterRole", "name": "cluster-admin"}, "subjects": [{"kind": "User", "name": "break-glass"}]},
+    {"kind": "ClusterRoleBinding", "metadata": {"name": "b-rbac"}, "roleRef": {"kind": "ClusterRole", "name": "rbac-editor"}, "subjects": [{"kind": "User", "name": "rbac-editor-user"}]},
+    {"kind": "ClusterRoleBinding", "metadata": {"name": "b-imp"}, "roleRef": {"kind": "ClusterRole", "name": "impersonator"}, "subjects": [{"kind": "User", "name": "support-agent"}]},
+    {"kind": "ClusterRoleBinding", "metadata": {"name": "b-secret"}, "roleRef": {"kind": "ClusterRole", "name": "secret-reader"}, "subjects": [{"kind": "ServiceAccount", "name": "audit-sa", "namespace": "monitoring"}]},
+    {"kind": "ClusterRoleBinding", "metadata": {"name": "b-pod"}, "roleRef": {"kind": "ClusterRole", "name": "pod-creator"}, "subjects": [{"kind": "User", "name": "deployer"}]},
+    {"kind": "ClusterRoleBinding", "metadata": {"name": "b-webhook"}, "roleRef": {"kind": "ClusterRole", "name": "webhook-admin"}, "subjects": [{"kind": "ServiceAccount", "name": "operator", "namespace": "platform"}]},
+    {"kind": "ClusterRoleBinding", "metadata": {"name": "b-view"}, "roleRef": {"kind": "ClusterRole", "name": "viewer-all"}, "subjects": [{"kind": "Group", "name": "readers"}]},
+    {"kind": "ClusterRoleBinding", "metadata": {"name": "b-config"}, "roleRef": {"kind": "ClusterRole", "name": "config-reader"}, "subjects": [{"kind": "User", "name": "config-viewer"}]},
+    {"kind": "ClusterRoleBinding", "metadata": {"name": "b-event"}, "roleRef": {"kind": "ClusterRole", "name": "event-cleaner"}, "subjects": [{"kind": "ServiceAccount", "name": "janitor", "namespace": "kube-system"}]}
+  ]
+}

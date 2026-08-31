@@ -1,0 +1,9 @@
+{
+  "bindings": [
+    {"role": "roles/monitoring.metricWriter", "members": ["serviceAccount:app@project.iam.gserviceaccount.com"]},
+    {"role": "projects/project/roles/instanceReader", "members": ["user:reporting@example.com"]}
+  ],
+  "customRoles": [
+    {"name": "projects/project/roles/instanceReader", "includedPermissions": ["compute.instances.get", "compute.instances.list"]}
+  ]
+}
