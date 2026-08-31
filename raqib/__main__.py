@@ -90,6 +90,63 @@ def cmd_audit(args):
     return 0
 
 
+def _finding_key(f):
+    p = f.get("principal") or {}
+    return f.get("tactic", "") + "|" + f.get("title", "") + "|" + (p.get("arn") or "")
+
+
+def cmd_diff(args):
+    """Scan two exports and report which findings appeared or resolved between them."""
+    try:
+        old = _load_json(args.old)
+        new = _load_json(args.new)
+    except FileNotFoundError as exc:
+        sys.stderr.write("raqib: no such file: " + str(exc) + "\n")
+        return 2
+    except json.JSONDecodeError as exc:
+        sys.stderr.write("raqib: an export is not valid JSON: " + str(exc) + "\n")
+        return 2
+    try:
+        of, osum, _ = audit(old, cloud=args.cloud)
+        nf, nsum, _ = audit(new, cloud=args.cloud)
+    except (ValueError, KeyError) as exc:
+        sys.stderr.write("raqib: could not read an export: " + str(exc) + "\n")
+        return 2
+    if osum.get("cloud") != nsum.get("cloud"):
+        sys.stderr.write("raqib: the two exports are from different clouds. diff compares one cloud.\n")
+        return 2
+
+    ok = {_finding_key(f) for f in of}
+    nk = {_finding_key(f) for f in nf}
+    added = [f for f in nf if _finding_key(f) not in ok]
+    removed = [f for f in of if _finding_key(f) not in nk]
+    unchanged = len([f for f in nf if _finding_key(f) in ok])
+
+    if args.json:
+        sys.stdout.write(json.dumps({"added": added, "removed": removed, "unchanged": unchanged}, indent=2) + "\n")
+    else:
+        cloud = nsum.get("cloud", "")
+        print("\n  " + cloud.upper() + " posture diff")
+        print("  %d new   %d resolved   %d unchanged\n" % (len(added), len(removed), unchanged))
+        if not added and not removed:
+            print("  No change in the findings between these two exports.\n")
+        else:
+            if added:
+                print("  New findings, exposure that appeared since the first export")
+                for f in added:
+                    print("  + [%s] %s  (%s %s)" % (f["severity"], f["title"], f["principal"]["kind"], f["principal"]["name"]))
+                print()
+            if removed:
+                print("  Resolved findings, exposure that is gone in the second export")
+                for f in removed:
+                    print("  - [%s] %s  (%s %s)" % (f["severity"], f["title"], f["principal"]["kind"], f["principal"]["name"]))
+                print()
+
+    if args.strict and added:
+        return 1
+    return 0
+
+
 def cmd_paths(args):
     """List the escalation paths Raqib looks for."""
     print("Privilege escalation paths Raqib checks:\n")
@@ -131,6 +188,14 @@ def build_parser():
     paths = sub.add_parser("paths", help="list the escalation paths Raqib checks")
     paths.set_defaults(func=cmd_paths)
 
+    d = sub.add_parser("diff", help="diff two exports and report findings that appeared or resolved")
+    d.add_argument("old", help="the earlier export")
+    d.add_argument("new", help="the later export")
+    d.add_argument("--cloud", choices=["aws", "azure", "gcp", "k8s"], help="which cloud the exports are from (detected when omitted)")
+    d.add_argument("--json", action="store_true", help="write the diff as JSON")
+    d.add_argument("--strict", action="store_true", help="exit 1 when a finding appeared")
+    d.set_defaults(func=cmd_diff)
+
     defends = sub.add_parser("defends", help="show which attacker tactics Raqib covers")
     defends.set_defaults(func=cmd_defends)
 
@@ -145,9 +210,9 @@ COVERAGE = [
       "k8s": "list or get across every namespace, a full map of the cluster"}),
     ("privesc", "privilege escalation",
      {"aws": "the known IAM escalation paths, administrator, and service wildcards, with boundary awareness",
-      "azure": "Owner, the ability to write role assignments, and elevateAccess",
-      "gcp": "Owner, setIamPolicy, and service account impersonation",
-      "k8s": "cluster-admin, and the escalate, bind, impersonate, and create pods verbs"}),
+      "azure": "Owner, writing role assignments or role definitions, elevateAccess, and running as a managed identity via a VM, a runbook, or an identity assignment",
+      "gcp": "Owner, setIamPolicy, impersonation and signing, acting as a service account to deploy on Cloud Functions, Compute, or Cloud Run, rewriting a custom role, and running as the Cloud Build or Deployment Manager service account",
+      "k8s": "cluster-admin, the escalate, bind, and impersonate verbs, creating pods or the workloads that create them, exec into pods, minting service account tokens, and self approving certificate requests"}),
     ("persist", "persistence",
      {"aws": "creating a user or role and granting it access, and a second active access key",
       "azure": "creating managed identities, and planting standing role assignments",

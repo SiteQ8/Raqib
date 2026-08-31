@@ -11,7 +11,7 @@ offline.
 from raqib.lib import detect, common
 from raqib import modules
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"
 
 
 def audit(export, cloud=None, credential_report_csv=None, max_key_age_days=90):
