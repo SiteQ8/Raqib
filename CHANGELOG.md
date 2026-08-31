@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0
+
+The bash scanner now reads the AWS credential report, so its AWS coverage matches the Python engine: not just what IAM policy allows, but the credential hygiene the policy cannot show.
+
+- New credentials_aws module: flags a root account with an active access key or no multi factor authentication, a console user without a second factor, a user with two active keys, and an access key that is old and still active
+- A --credentials flag gathers the report live (read only: generate and get, which describes the account and changes no principal), and --credential-report reads one you already captured
+- A --max-key-age flag sets what counts as an old key, ninety days by default
+- New test that drives raqib.sh over every sample and asserts it matches the Python engine, credential report included, so the two paths cannot drift apart
+- The browser explorer now shows the credential findings in the AWS view
+
 ## 0.5.0
 
 Raqib is now a bash tool that scans your cloud. Point it at the cloud you are signed in to and it reads your live authorization configuration with read only calls, no file to export and hand over, mirroring the offensive framework it defends against.

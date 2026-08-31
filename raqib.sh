@@ -10,7 +10,7 @@
 # secret, object, or key. It reads who can do what, and reports it.
 
 set -u
-RAQIB_VERSION="0.5.0"
+RAQIB_VERSION="0.6.0"
 RAQIB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck disable=SC1091
@@ -49,8 +49,15 @@ usage() {
 '             scan the cloud you are signed in to, live, read only. This is the default.' \
 '  ./raqib.sh scan --offline EXPORT.json [--cloud CLOUD] [--strict] [--json]' \
 '             read a saved export instead of calling a cloud, for air gapped review.' \
+'  ./raqib.sh scan --credentials' \
+'             also read the AWS credential report: root keys, console users without a' \
+'             second factor, and old keys. Needs generate-credential-report.' \
 '  ./raqib.sh defends' \
 '             print the whole cloud by tactic map of what Raqib checks.' \
+'' \
+'Other options:' \
+'  --credential-report FILE   read a credential report CSV you already captured' \
+'  --max-key-age DAYS         what counts as an old AWS access key (default 90)' \
 '' \
 'Notes:' \
 '  Live scanning needs jq and the CLI for the cloud you scan (aws, az, gcloud, kubectl),' \
@@ -92,13 +99,16 @@ cmd_defends() {
 }
 
 cmd_scan() {
-  local forced_cloud="" offline="" strict=0 as_json=0
+  local forced_cloud="" offline="" strict=0 as_json=0 creds_live=0 cred_csv="" maxage=90
   while [ $# -gt 0 ]; do
     case "$1" in
       --cloud) forced_cloud="$2"; shift 2 ;;
       --offline) offline="$2"; shift 2 ;;
       --strict) strict=1; shift ;;
       --json) as_json=1; shift ;;
+      --credentials) creds_live=1; shift ;;
+      --credential-report) cred_csv="$2"; shift 2 ;;
+      --max-key-age) maxage="$2"; shift 2 ;;
       -h|--help) usage; exit 0 ;;
       *) log_error "unknown option: $1"; usage; exit 2 ;;
     esac
@@ -128,11 +138,23 @@ cmd_scan() {
     for c in "${targets[@]}"; do "gather_${c}" || log_warn "could not read $c, skipping"; done
   fi
 
+  # the AWS credential report is a separate read only input. gather it live only when
+  # asked, since it needs generate-credential-report; or read one already captured.
+  if [ "$creds_live" -eq 1 ] && [ -z "$cred_csv" ]; then
+    if printf '%s\n' "${targets[@]}" | grep -qx aws; then
+      gather_aws_credentials && cred_csv="$WORKDIR/aws-credentials.csv"
+    fi
+  fi
+
   local c ep
   for c in "${targets[@]}"; do
     ep="$(export_path_for "$c")"
     [ -f "$ep" ] || continue
     analyze_cloud "$c" "$ep"
+    if [ "$c" = "aws" ] && [ -n "$cred_csv" ] && [ -f "$cred_csv" ]; then
+      . "$RAQIB_ROOT/src/modules/credentials_aws.sh"
+      analyze_credentials_aws "$cred_csv" "$maxage" 2>/dev/null | jq -c '.[]?' >> "$FINDINGS" 2>/dev/null || true
+    fi
   done
 
   if [ "$as_json" -eq 1 ]; then
