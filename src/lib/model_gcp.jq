@@ -65,7 +65,7 @@ def has_permission($p; $perm; $custom):
   | any($p.roles[]; perms_of(.; $custom) as $ps | (($ps|index("*")) != null) or (($ps|index($x)) != null));
 
 def is_owner($p): has_role($p; "roles/owner");
-def is_public($p): (.member == "allUsers" or .member == "allAuthenticatedUsers");
+def is_public($p): (($p.member) == "allUsers" or ($p.member) == "allAuthenticatedUsers");
 
 def principal_ref($p): { kind: $p.kind, name: $p.name, arn: $p.arn };
 def finding($id; $sev; $title; $p; $detail; $fix; $tactic):

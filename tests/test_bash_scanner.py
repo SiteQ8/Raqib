@@ -40,6 +40,23 @@ def engine_total(cloud, scenario, credential_csv=None):
     return summary["total"]
 
 
+def _sig(findings):
+    # the functional identity of a finding: what it is, how bad, and about whom.
+    # title wording can differ cosmetically between the engines; severity, tactic,
+    # and principal must not, so a mis-scoped finding cannot hide behind an equal total.
+    out = []
+    for f in findings:
+        p = f.get("principal") or {}
+        out.append((f["severity"], f["tactic"], p.get("name", ""), p.get("kind", "")))
+    return sorted(out)
+
+
+def engine_findings(cloud, scenario):
+    with open(os.path.join(HERE, "samples", cloud, scenario + ".json")) as fh:
+        findings, _, _ = audit(json.load(fh), cloud=cloud)
+    return findings
+
+
 @unittest.skipUnless(HAVE_JQ, "jq is required for the bash scanner")
 class TestBashParity(unittest.TestCase):
     def test_each_cloud_vulnerable_matches_engine(self):
@@ -48,6 +65,16 @@ class TestBashParity(unittest.TestCase):
                 self.assertEqual(len(scan(cloud, "vulnerable")),
                                  engine_total(cloud, "vulnerable"),
                                  f"{cloud} vulnerable count drifted")
+
+    def test_each_cloud_findings_match_engine(self):
+        # deeper than a count: the two engines must agree finding for finding, on
+        # severity, tactic, title, and principal, so a divergence like a mis-scoped
+        # public member cannot hide behind an equal total.
+        for cloud in ["aws", "azure", "gcp", "k8s"]:
+            with self.subTest(cloud=cloud):
+                self.assertEqual(_sig(scan(cloud, "vulnerable")),
+                                 _sig(engine_findings(cloud, "vulnerable")),
+                                 f"{cloud} findings diverged between the bash scanner and the engine")
 
     def test_each_cloud_clean_is_empty(self):
         for cloud in ["aws", "azure", "gcp", "k8s"]:

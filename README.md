@@ -29,11 +29,14 @@ That is the whole thing. Point it at a cloud, read the exposure, change nothing.
 ./raqib.sh scan --json           machine readable findings
 ./raqib.sh defends               print the whole cloud by tactic map of what Raqib checks
 ./raqib.sh diff OLD.json NEW.json compare two exports, report findings that appeared or resolved
+./raqib.sh score                 rate the posture and rank the principals to fix first
 ```
 
 For AWS, `--credentials` adds what IAM policy cannot show: a root account with an active access key or no multi factor authentication, a console user without a second factor, and access keys that are old and still active. It reads the credential report, which describes the account and changes no principal. Pass `--max-key-age DAYS` to set what counts as old, and `--credential-report FILE` to read a report you already captured.
 
 For AWS, `--exposure` reads the resource policies of S3 buckets, SQS queues, SNS topics, Lambda functions, Secrets Manager secrets, and KMS keys, and flags any left open to the public or another account: a bucket public through its policy, a queue or topic anyone can use, a function anyone can invoke, a secret anyone can read, a KMS key policy that allows any principal, and any of these that grants an external account access. This reads the resource policy, it never reads an object, a message, a secret value, or decrypts anything. Pass `--resource-policies FILE` to read policies you already captured.
+
+`score` rates the posture of a scan, a grade and a number, and then ranks the principals that carry the most risk so there is a clear order to fix in, worst severity and most findings first. It reads the same findings the scan prints, so `raqib.sh score` and `raqib.sh score --offline export.json` both work, and `python -m raqib score export.json` is the same in the engine.
 
 `diff` scans two exports and reports which findings appeared and which resolved between them, so a posture regression is caught between two points in time. Detected per file, or pass `--cloud`; add `--strict` to exit non zero when a finding appeared, for a pipeline that fails on new exposure. The Python engine has the same command, `python -m raqib diff OLD.json NEW.json`.
 
