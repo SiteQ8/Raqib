@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0
+
+Raqib is now a bash tool that scans your cloud. Point it at the cloud you are signed in to and it reads your live authorization configuration with read only calls, no file to export and hand over, mirroring the offensive framework it defends against.
+
+- New launcher raqib.sh: detects the cloud, gathers its authorization configuration with read only calls, and reports, all in one step
+- Reads live across AWS, Azure, GCP, and Kubernetes, with a guard that refuses any call that is not one of the read only gather calls
+- The analysis is pure bash and jq: models in src/lib as model_{cloud}.jq, checks in src/modules as {tactic}_{cloud}.sh, the same cloud by tactic matrix as before
+- Validated to produce the same findings as the Python engine across every sample, all four clouds
+- A defends command that prints the whole cloud by tactic map, and a --strict mode that exits non zero on a critical or high finding
+- The file workflow is now secondary: --offline reads a saved export for air gapped review, and the Python engine stays for SARIF and the AWS credential report
+
 ## 0.4.0
 
 Raqib is now a cloud tool, not an AWS tool, and it is organized as a cloud by tactic matrix that mirrors S7aba module for module.

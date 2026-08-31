@@ -33,25 +33,22 @@ li{margin:5px 0;color:#dce3f0}
 </div>
 
 <h2>What it does</h2>
-<p>Raqib reads the authorization export your account already produces, for AWS, Azure, GCP, or Kubernetes, and reports the exposure in it, organized by the moves an intruder makes after a foothold. It is built as the mirror of an offensive toolkit that runs across the same four clouds: for each tactic an attacker runs, Raqib reads the account for the weakness that lets it work, and tells you the change that closes it.</p>
-<p>It never calls a cloud and never touches your account. You hand it a file, and it reasons about that file offline. Nothing to trust it with beyond a JSON export you control.</p>
+<p>Point Raqib at the cloud you are signed in to and it reads your live authorization configuration with read only calls, then reports the exposure in it, organized by the moves an intruder makes after a foothold. It is the defensive mirror of an offensive toolkit that runs the same six tactics across AWS, Azure, GCP, and Kubernetes: for each tactic an attacker runs, Raqib reads the account for the weakness that lets it work, and tells you the change that closes it.</p>
+<p>No file to export and hand over. Raqib reads who can do what, and reports it. It never creates, changes, or deletes anything, and never reads the contents of a secret, an object, or a key.</p>
 
 <h2>A sample report</h2>
 <div class="shot"><a href="report.html"><img src="hero.png" alt="A Raqib report listing IAM findings by severity"></a></div>
 <p>This is Raqib run against a deliberately weak example account. <a href="report.html" style="color:var(--accent)">Open the live report.</a></p>
 
 <h2>Run it</h2>
-<p>Produce your cloud's authorization export and audit it. Raqib detects the cloud on its own. The AWS quickstart:</p>
-<pre>aws iam get-account-authorization-details &gt; export.json
-python3 raqib.py audit export.json
-
-# add credential findings, and write a shareable HTML report
-aws iam generate-credential-report &amp;&amp; aws iam get-credential-report --query Content --output text | base64 --decode &gt; creds.csv
-python3 raqib.py audit export.json --credential-report creds.csv -o report.html
-
-# gate a pipeline: exit 1 on a critical or high finding
-python3 raqib.py audit export.json --strict</pre>
-<p>It is a single zero dependency Python tool. It needs Python 3.8 or newer and nothing else.</p>
+<p>Sign in to your cloud the way you already do, then point Raqib at it. It detects the cloud, reads its authorization configuration with read only calls, and reports.</p>
+<pre>git clone https://github.com/SiteQ8/Raqib.git
+cd Raqib
+./raqib.sh                  # scan whatever cloud you are signed in to, live, read only
+./raqib.sh --cloud aws      # scan one named cloud
+./raqib.sh scan --strict    # exit non zero on a critical or high finding
+./raqib.sh defends          # print the cloud by tactic map</pre>
+<p>The scanner is bash and jq, and needs the CLI for the cloud you scan. For a pipeline, a zero dependency Python engine reads the same data and writes SARIF for a repository security tab, and adds the AWS credential report checks. To review a saved export offline, <code>./raqib.sh scan --offline export.json</code>.</p>
 
 <h2>Four clouds, six tactics</h2>
 <p>Raqib reads AWS, Azure, GCP, and Kubernetes, and reports the same six attacker tactics in each cloud's own terms. The checks are named by tactic and cloud, in a matrix that mirrors the offensive framework module for module. Run <code>python3 raqib.py defends</code> for the map.</p>
