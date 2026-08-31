@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "raqib"
-version = "0.10.0"
+version = "0.11.0"
 description = "A read only cloud exposure auditor for AWS, Azure, GCP, and Kubernetes"
 readme = "README.md"
 requires-python = ">=3.8"

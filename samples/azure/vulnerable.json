@@ -119,6 +119,26 @@
         "roleName": "Identity Creator",
         "scope": "/subscriptions/sub-1/resourceGroups/identity"
       }
+    },
+    {
+      "properties": {
+        "principalId": "dddd-xsub",
+        "principalType": "ServicePrincipal",
+        "principalName": "cross-sub-sp",
+        "roleDefinitionId": "/providers/Microsoft.Authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7",
+        "roleName": "Reader",
+        "scope": "/subscriptions/sub-1/resourceGroups/a"
+      }
+    },
+    {
+      "properties": {
+        "principalId": "dddd-xsub",
+        "principalType": "ServicePrincipal",
+        "principalName": "cross-sub-sp",
+        "roleDefinitionId": "/providers/Microsoft.Authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7",
+        "roleName": "Reader",
+        "scope": "/subscriptions/sub-2/resourceGroups/b"
+      }
     }
   ],
   "roleDefinitions": [

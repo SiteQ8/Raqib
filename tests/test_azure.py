@@ -58,6 +58,15 @@ class TestAzureFindings(unittest.TestCase):
         findings, _, _ = audit(load("vulnerable.json"))
         self.assertTrue(any("create an Automation account" in f["title"] and f["tactic"] == "persistence" for f in findings))
 
+    def test_multi_subscription_reach_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("spans multiple subscriptions" in f["title"] and f["tactic"] == "lateral movement" for f in findings))
+
+    def test_multiple_assignments_accumulate(self):
+        acct = azure.load(load("vulnerable.json"))
+        sp = [p for p in acct.principals if p.name == "cross-sub-sp"][0]
+        self.assertGreaterEqual(len(sp.assignments), 2)
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)

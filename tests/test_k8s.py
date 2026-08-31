@@ -69,6 +69,14 @@ class TestK8sFindings(unittest.TestCase):
         findings, _, _ = audit(load("vulnerable.json"))
         self.assertTrue(any(f["title"] == "Can create service accounts" and f["tactic"] == "persistence" for f in findings))
 
+    def test_node_proxy_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("reach the kubelet on nodes" in f["title"] and f["severity"] == "high" for f in findings))
+
+    def test_port_forward_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("port forward to pods" in f["title"] and f["severity"] == "medium" for f in findings))
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)
