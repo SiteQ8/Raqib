@@ -9,6 +9,7 @@ technique_for() {
     "exfiltration") echo "T1530 Data from Cloud Storage" ;;
     "defense evasion") echo "T1562.008 Disable or Modify Cloud Logs" ;;
     "credential exposure") echo "T1078 Valid Accounts" ;;
+    "public exposure") echo "T1530 Data from Cloud Storage" ;;
     *) echo "" ;;
   esac
 }
