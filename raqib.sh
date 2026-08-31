@@ -10,7 +10,7 @@
 # secret, object, or key. It reads who can do what, and reports it.
 
 set -u
-RAQIB_VERSION="0.6.0"
+RAQIB_VERSION="0.7.0"
 RAQIB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck disable=SC1091
@@ -52,11 +52,15 @@ usage() {
 '  ./raqib.sh scan --credentials' \
 '             also read the AWS credential report: root keys, console users without a' \
 '             second factor, and old keys. Needs generate-credential-report.' \
+'  ./raqib.sh scan --exposure' \
+'             also read S3 and KMS resource policies for buckets and keys left open to' \
+'             the public or another account.' \
 '  ./raqib.sh defends' \
 '             print the whole cloud by tactic map of what Raqib checks.' \
 '' \
 'Other options:' \
 '  --credential-report FILE   read a credential report CSV you already captured' \
+'  --resource-policies FILE   read captured S3 and KMS policies instead of calling AWS' \
 '  --max-key-age DAYS         what counts as an old AWS access key (default 90)' \
 '' \
 'Notes:' \
@@ -99,7 +103,7 @@ cmd_defends() {
 }
 
 cmd_scan() {
-  local forced_cloud="" offline="" strict=0 as_json=0 creds_live=0 cred_csv="" maxage=90
+  local forced_cloud="" offline="" strict=0 as_json=0 creds_live=0 cred_csv="" maxage=90 exposure_live=0 rp_file=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --cloud) forced_cloud="$2"; shift 2 ;;
@@ -109,6 +113,8 @@ cmd_scan() {
       --credentials) creds_live=1; shift ;;
       --credential-report) cred_csv="$2"; shift 2 ;;
       --max-key-age) maxage="$2"; shift 2 ;;
+      --exposure) exposure_live=1; shift ;;
+      --resource-policies) rp_file="$2"; shift 2 ;;
       -h|--help) usage; exit 0 ;;
       *) log_error "unknown option: $1"; usage; exit 2 ;;
     esac
@@ -146,6 +152,13 @@ cmd_scan() {
     fi
   fi
 
+  # resource policies (S3, KMS): gather live with --exposure, or read a captured file
+  if [ "$exposure_live" -eq 1 ] && [ -z "$rp_file" ]; then
+    if printf '%s\n' "${targets[@]}" | grep -qx aws; then
+      gather_aws_exposure && rp_file="$WORKDIR/aws-resource-policies.json"
+    fi
+  fi
+
   local c ep
   for c in "${targets[@]}"; do
     ep="$(export_path_for "$c")"
@@ -154,6 +167,10 @@ cmd_scan() {
     if [ "$c" = "aws" ] && [ -n "$cred_csv" ] && [ -f "$cred_csv" ]; then
       . "$RAQIB_ROOT/src/modules/credentials_aws.sh"
       analyze_credentials_aws "$cred_csv" "$maxage" 2>/dev/null | jq -c '.[]?' >> "$FINDINGS" 2>/dev/null || true
+    fi
+    if [ "$c" = "aws" ] && [ -n "$rp_file" ] && [ -f "$rp_file" ]; then
+      . "$RAQIB_ROOT/src/modules/exposure_aws.sh"
+      analyze_exposure_aws "$rp_file" 2>/dev/null | jq -c '.[]?' >> "$FINDINGS" 2>/dev/null || true
     fi
   done
 

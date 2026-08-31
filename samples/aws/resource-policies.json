@@ -1,0 +1,130 @@
+{
+  "account": "111122223333",
+  "buckets": [
+    {
+      "name": "customer-exports",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::customer-exports/*"
+          }
+        ]
+      },
+      "publicAccessBlock": {
+        "BlockPublicAcls": false,
+        "IgnorePublicAcls": false,
+        "BlockPublicPolicy": false,
+        "RestrictPublicBuckets": false
+      }
+    },
+    {
+      "name": "metrics-public",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::metrics-public/*",
+            "Condition": { "IpAddress": { "aws:SourceIp": "203.0.113.0/24" } }
+          }
+        ]
+      },
+      "publicAccessBlock": {
+        "BlockPublicAcls": true,
+        "IgnorePublicAcls": true,
+        "BlockPublicPolicy": true,
+        "RestrictPublicBuckets": true
+      }
+    },
+    {
+      "name": "partner-dropbox",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": { "AWS": "arn:aws:iam::999988887777:root" },
+            "Action": ["s3:GetObject", "s3:PutObject"],
+            "Resource": "arn:aws:s3:::partner-dropbox/*"
+          }
+        ]
+      },
+      "publicAccessBlock": {
+        "BlockPublicAcls": true,
+        "IgnorePublicAcls": true,
+        "BlockPublicPolicy": true,
+        "RestrictPublicBuckets": true
+      }
+    },
+    {
+      "name": "legacy-archive",
+      "policy": null,
+      "publicAccessBlock": {
+        "BlockPublicAcls": true,
+        "IgnorePublicAcls": true,
+        "BlockPublicPolicy": false,
+        "RestrictPublicBuckets": true
+      }
+    },
+    {
+      "name": "app-logs",
+      "policy": null,
+      "publicAccessBlock": {
+        "BlockPublicAcls": true,
+        "IgnorePublicAcls": true,
+        "BlockPublicPolicy": true,
+        "RestrictPublicBuckets": true
+      }
+    }
+  ],
+  "kmsKeys": [
+    {
+      "keyId": "1234abcd-shared",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "kms:Decrypt",
+            "Resource": "*"
+          }
+        ]
+      }
+    },
+    {
+      "keyId": "5678efgh-partner",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": { "AWS": "arn:aws:iam::999988887777:root" },
+            "Action": "kms:Decrypt",
+            "Resource": "*"
+          }
+        ]
+      }
+    },
+    {
+      "keyId": "9012ijkl-app",
+      "policy": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": { "AWS": "arn:aws:iam::111122223333:root" },
+            "Action": "kms:*",
+            "Resource": "*"
+          }
+        ]
+      }
+    }
+  ]
+}

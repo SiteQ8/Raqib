@@ -2,7 +2,7 @@
 
 A read only lookout over your cloud access. Point Raqib at the cloud you are signed in to and it reads your live authorization configuration with read only calls, then reports the moves an intruder would make after a foothold: mapping the account, turning access into more, planting something to keep it, reaching the next principal, pulling the data out, and turning off the logging that would record it. Each finding says why it is exploitable and the change that closes it.
 
-Raqib (راقب, one who watches over) is the defensive mirror of an offensive framework that runs those same six tactics across AWS, Azure, GCP, and Kubernetes. It reads who can do what, and reports it. It never creates, changes, or deletes anything, and it never reads the contents of a secret, an object, or a key.
+Raqib (رقيب, the watcher) is the defensive mirror of an offensive framework that runs those same six tactics across AWS, Azure, GCP, and Kubernetes. It reads who can do what, and reports it. It never creates, changes, or deletes anything, and it never reads the contents of a secret, an object, or a key.
 
 Live demo and a sample report: https://siteq8.github.io/Raqib/
 
@@ -24,12 +24,15 @@ That is the whole thing. Point it at a cloud, read the exposure, change nothing.
 ./raqib.sh                       scan whatever cloud you are signed in to, live
 ./raqib.sh --cloud aws           scan one named cloud
 ./raqib.sh scan --credentials    also read the AWS credential report
+./raqib.sh scan --exposure       also read S3 and KMS resource policies for public exposure
 ./raqib.sh scan --strict         exit non zero if a critical or high finding is present
 ./raqib.sh scan --json           machine readable findings
 ./raqib.sh defends               print the whole cloud by tactic map of what Raqib checks
 ```
 
 For AWS, `--credentials` adds what IAM policy cannot show: a root account with an active access key or no multi factor authentication, a console user without a second factor, and access keys that are old and still active. It reads the credential report, which describes the account and changes no principal. Pass `--max-key-age DAYS` to set what counts as old, and `--credential-report FILE` to read a report you already captured.
+
+For AWS, `--exposure` reads S3 and KMS resource policies and flags a bucket or a key left open to the public or another account: a bucket public through its policy, a bucket that grants another account access, a bucket without a full public access block, a KMS key policy that allows any principal, and a key that trusts an external account. This reads the resource policy, it never reads an object or decrypts anything. Pass `--resource-policies FILE` to read policies you already captured.
 
 Live scanning needs `jq` and the CLI for the cloud you are scanning (`aws`, `az`, `gcloud`, or `kubectl`), already signed in. Nothing else.
 
@@ -67,7 +70,7 @@ The checks are a cloud by tactic matrix under `src/modules`, named `{tactic}_{cl
 - Exfiltration: the permission to read secrets, objects, parameters, and keys broadly, listing storage keys, reading config maps and secrets across a cluster.
 - Anti forensics: the ability to stop or delete the account's own record keeping, in each cloud's logging.
 
-Every finding carries the MITRE ATT&CK technique it defends against. AWS is the deepest today, with permissions boundary awareness across the escalation paths; the other three cover the primary paths and have room to grow. Exfiltration reads the permission to move data, which is separate from a resource left open to the public through a resource policy, still to come.
+Every finding carries the MITRE ATT&CK technique it defends against. AWS is the deepest today, with permissions boundary awareness across the escalation paths; the other three cover the primary paths and have room to grow. Exfiltration reads the permission to move data. A resource left open to the public through a resource policy is separate, and for AWS `--exposure` now reads that too.
 
 ## Reviewing a saved export
 
@@ -95,13 +98,19 @@ The engine and the scanner report the same finding taxonomy, so a finding reads 
 
 A finding says what a permission would allow, not that it was used. Raqib reads configuration, not activity. It tells you that a principal could rewrite an attached policy, not that anyone did.
 
-A clean report means the export named nothing these rules look for. It does not mean the account is secure. Raqib checks the paths it knows about; it does not prove their absence everywhere, and it does not yet read resource policies, Azure policy, or organization and folder level bindings, which can widen or narrow real access.
+A clean report means the export named nothing these rules look for. It does not mean the account is secure. Raqib checks the paths it knows about; it does not prove their absence everywhere. It reads AWS resource policies for S3 and KMS with `--exposure`, and does not yet read other resource policies, Azure policy, or organization and folder level bindings, which can widen or narrow real access.
 
 ## How it works
 
 The scan runs entirely on what Raqib reads back from the cloud. `raqib.sh` detects the cloud, gathers its authorization configuration with read only calls into a temporary directory, and runs the tactic modules over it. The models live in `src/lib` as `model_{cloud}.jq`, one per cloud, and resolve the raw export into principals with their effective permissions: AWS IAM into inline, attached, and group policies with permissions boundaries read; Azure role assignments joined to role definitions across actions and dataActions; GCP bindings resolved to members with predefined and custom roles; Kubernetes roles resolved to subjects through their bindings, cluster wide or namespaced. The checks are the matrix under `src/modules`, `{tactic}_{cloud}.sh`, each testing the resolved permissions for the exposure that lets its tactic work, and separating an unconditional grant from one a scope already contains. Nothing here executes anything against the cloud beyond reading, and the temporary directory is removed when the scan ends.
 
 The Python engine under `raqib/` mirrors the same layout, `raqib/lib`, `raqib/models`, and `raqib/modules`, for the offline and SARIF path.
+
+## The name
+
+Raqib is رقيب, Arabic for the watcher, the observer, the one who keeps vigilant guard. It comes from the root ر ق ب, which carries the sense of watching, observing, and keeping watch over something.
+
+The name is the whole idea of the tool. A raqib watches and reports what it sees; it does not act. That is exactly what this is. Raqib observes your cloud's access with read only calls and reports what it finds, and it never touches the account. A watcher, not an actor. Where the offensive framework it mirrors acts on a cloud, Raqib keeps watch over one.
 
 ## License
 

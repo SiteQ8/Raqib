@@ -65,6 +65,19 @@ class TestBashParity(unittest.TestCase):
         default_age = len(scan("aws", "vulnerable", ["--credential-report", csv]))
         self.assertLess(strict_age, default_age)
 
+    def test_resource_policies_add_public_exposure(self):
+        rp = os.path.join(HERE, "samples", "aws", "resource-policies.json")
+        base = len(scan("aws", "vulnerable"))
+        findings = scan("aws", "vulnerable", ["--resource-policies", rp])
+        exposure = [f for f in findings if f["tactic"] == "public exposure"]
+        self.assertEqual(len(exposure), 6)
+        self.assertEqual(len(findings), base + 6)
+        self.assertEqual(sorted(f["severity"] for f in exposure),
+                         ["critical", "high", "high", "medium", "medium", "medium"])
+        titles = " ".join(f["title"] for f in exposure)
+        self.assertIn("open to the public", titles)
+        self.assertIn("grants another account access", titles)
+
 
 if __name__ == "__main__":
     unittest.main()

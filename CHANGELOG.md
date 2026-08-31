@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0
+
+Raqib now reads resource policies, the exposure the IAM export cannot show. An IAM grant is who is allowed to do what; a resource policy is a bucket or a key left open to the world regardless of any identity. For AWS, Raqib now reads both.
+
+- New exposure_aws module: an S3 bucket open to the public through its bucket policy, a bucket that grants another account access, a bucket that allows the public only under a condition, a bucket without a full public access block, a KMS key policy that allows any principal, and a key policy that trusts an external account
+- A --exposure flag gathers S3 and KMS resource policies live, read only (list buckets and keys, get their policies, get the public access block); --resource-policies reads a captured file
+- This closes the gap noted since the first release: exfiltration read the permission to move data, and now Raqib also reads the resource left open to the public
+- New test that asserts the exposure findings on the sample, so the behavior is pinned. 103 tests
+- The browser explorer shows the exposure findings in the AWS view, 27 findings
+
 ## 0.6.0
 
 The bash scanner now reads the AWS credential report, so its AWS coverage matches the Python engine: not just what IAM policy allows, but the credential hygiene the policy cannot show.

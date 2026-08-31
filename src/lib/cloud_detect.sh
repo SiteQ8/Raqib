@@ -63,4 +63,32 @@ gather_aws_credentials() {
   return 1
 }
 
+gather_aws_exposure() {
+  log_step "reading S3 and KMS resource policies (list and get policy, read only)"
+  local acct; acct="$(run_readonly aws aws sts get-caller-identity --query Account --output text 2>/dev/null)"
+  local blist="$WORKDIR/_bnames.txt" klist="$WORKDIR/_knames.txt"
+  local tmpb="$WORKDIR/_buckets.jsonl" tmpk="$WORKDIR/_keys.jsonl"
+  : > "$tmpb"; : > "$tmpk"
+  run_readonly aws aws s3api list-buckets --query 'Buckets[].Name' --output text 2>/dev/null | tr '\t' '\n' > "$blist"
+  local name pol pab
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    pol="$(run_readonly aws aws s3api get-bucket-policy --bucket "$name" --query Policy --output text 2>/dev/null)"
+    pab="$(run_readonly aws aws s3api get-public-access-block --bucket "$name" --query PublicAccessBlockConfiguration --output json 2>/dev/null)"
+    [ -n "$pab" ] || pab="null"
+    jq -nc --arg name "$name" --arg pol "$pol" --argjson pab "$pab" \
+      '{name:$name, policy:(if $pol=="" then null else ($pol|fromjson) end), publicAccessBlock:$pab}' >> "$tmpb" 2>/dev/null
+  done < "$blist"
+  run_readonly aws aws kms list-keys --query 'Keys[].KeyId' --output text 2>/dev/null | tr '\t' '\n' > "$klist"
+  local kid kpol
+  while IFS= read -r kid; do
+    [ -n "$kid" ] || continue
+    kpol="$(run_readonly aws aws kms get-key-policy --key-id "$kid" --policy-name default --query Policy --output text 2>/dev/null)"
+    jq -nc --arg kid "$kid" --arg kpol "$kpol" \
+      '{keyId:$kid, policy:(if $kpol=="" then null else ($kpol|fromjson) end)}' >> "$tmpk" 2>/dev/null
+  done < "$klist"
+  jq -nc --arg acct "$acct" --slurpfile b "$tmpb" --slurpfile k "$tmpk" \
+    '{account:$acct, buckets:$b, kmsKeys:$k}' > "$WORKDIR/aws-resource-policies.json"
+}
+
 export_path_for() { echo "$WORKDIR/$1.json"; }

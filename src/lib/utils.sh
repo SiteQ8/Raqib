@@ -11,6 +11,9 @@ run_readonly() {
     aws)
       case "$2 $3" in
         "iam get-account-authorization-details"*|"iam generate-credential-report"*|"iam get-credential-report"*) : ;;
+        "s3api list-buckets"*|"s3api get-bucket-policy"*|"s3api get-public-access-block"*|"s3api get-bucket-policy-status"*) : ;;
+        "kms list-keys"*|"kms get-key-policy"*) : ;;
+        "sts get-caller-identity"*) : ;;
         *) log_error "raqib: refusing a non read only aws call: $joined"; return 3 ;;
       esac ;;
     az)
