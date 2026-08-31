@@ -47,4 +47,20 @@ gather_k8s() {
   run_readonly kubectl kubectl get clusterroles,clusterrolebindings,roles,rolebindings -A -o json > "$WORKDIR/k8s.json"
 }
 
+gather_aws_credentials() {
+  log_step "reading the AWS credential report (generate and get, read only report)"
+  run_readonly aws aws iam generate-credential-report >/dev/null 2>&1 || true
+  # the report can take a moment to become ready; poll a few times
+  local i out
+  for i in 1 2 3 4 5; do
+    out="$(run_readonly aws aws iam get-credential-report --query Content --output text 2>/dev/null)"
+    if [ -n "$out" ]; then
+      printf '%s' "$out" | base64 --decode > "$WORKDIR/aws-credentials.csv" 2>/dev/null && return 0
+    fi
+    sleep 2
+  done
+  log_warn "could not read the credential report"
+  return 1
+}
+
 export_path_for() { echo "$WORKDIR/$1.json"; }

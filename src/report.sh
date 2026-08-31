@@ -8,6 +8,7 @@ technique_for() {
     "lateral movement") echo "T1199 Trusted Relationship" ;;
     "exfiltration") echo "T1530 Data from Cloud Storage" ;;
     "defense evasion") echo "T1562.008 Disable or Modify Cloud Logs" ;;
+    "credential exposure") echo "T1078 Valid Accounts" ;;
     *) echo "" ;;
   esac
 }

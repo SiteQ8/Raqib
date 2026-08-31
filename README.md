@@ -23,10 +23,13 @@ That is the whole thing. Point it at a cloud, read the exposure, change nothing.
 ```
 ./raqib.sh                       scan whatever cloud you are signed in to, live
 ./raqib.sh --cloud aws           scan one named cloud
+./raqib.sh scan --credentials    also read the AWS credential report
 ./raqib.sh scan --strict         exit non zero if a critical or high finding is present
 ./raqib.sh scan --json           machine readable findings
 ./raqib.sh defends               print the whole cloud by tactic map of what Raqib checks
 ```
+
+For AWS, `--credentials` adds what IAM policy cannot show: a root account with an active access key or no multi factor authentication, a console user without a second factor, and access keys that are old and still active. It reads the credential report, which describes the account and changes no principal. Pass `--max-key-age DAYS` to set what counts as old, and `--credential-report FILE` to read a report you already captured.
 
 Live scanning needs `jq` and the CLI for the cloud you are scanning (`aws`, `az`, `gcloud`, or `kubectl`), already signed in. Nothing else.
 
