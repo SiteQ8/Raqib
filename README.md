@@ -2,7 +2,7 @@
 
 A read only lookout over your AWS IAM. It reads the export your account already produces and reports the paths an attacker would take: the privilege escalation moves a principal could make, role trust policies that let the wrong people in, wildcard permissions on sensitive services, and the stale keys and console logins that make a foothold easy. Each finding says why it is exploitable and the change that closes it.
 
-Raqib (رقيب, the watcher) never calls AWS and never touches your account. You hand it a file, and it reasons about that file offline.
+Raqib (راقب, one who watches over) never calls AWS and never touches your account. You hand it a file, and it reasons about that file offline.
 
 Live demo and a sample report: https://siteq8.github.io/Raqib/
 
@@ -24,9 +24,11 @@ Raqib checks each principal's effective permissions, after inline policies, atta
 - Adding itself to a group, or rewriting a role trust policy it can then assume
 - Passing a powerful role to a new EC2 instance, Lambda function, Glue endpoint, CloudFormation stack, Data Pipeline, SageMaker notebook, or CodeBuild project
 
-It also reads role trust policies for roles assumable by anyone, roles that trust an external account, and federated trust with no condition. It flags administrator by wildcard, and full control of a sensitive service through a service wildcard. With a credential report it adds root access keys, console users without multi factor authentication, and access keys that are old and still active.
+It also reads role trust policies for roles assumable by anyone, roles that trust an external account, and federated trust with no condition. It flags administrator by wildcard, and full control of a sensitive service through a service wildcard. It finds principals that can weaken the account's own record keeping, the ones that can stop or delete CloudTrail, Config, GuardDuty, log groups, or Security Hub, which is the move an intruder makes to erase their tracks. And with a credential report it adds root access keys, console users without multi factor authentication, users carrying a second active access key, and access keys that are old and still active.
 
-Run `python3 raqib.py paths` to list every escalation path it checks.
+Raqib reads a permissions boundary when one is attached, and lowers a finding when the boundary would cap the escalation it describes, so a bounded principal is not read as if it had free rein. Every finding carries the MITRE ATT&CK technique it defends against.
+
+Run `python3 raqib.py paths` to list every escalation path it checks, and `python3 raqib.py defends` to see which attacker tactics Raqib covers.
 
 ## Install
 
@@ -61,6 +63,12 @@ Gate a pipeline so a critical or high finding fails the build:
 python3 raqib.py audit export.json --strict
 ```
 
+Write SARIF and upload it so findings appear in the repository's security tab:
+
+```
+python3 raqib.py audit export.json --sarif -o raqib.sarif
+```
+
 Other options: `--json` for machine readable output, `--max-key-age DAYS` to set what counts as a stale key, `--title` to name the report.
 
 ## What a finding means, and what it does not
@@ -70,6 +78,10 @@ A finding says what a permission would allow, not that it was used. Raqib reads 
 A clean report means the export named nothing these rules look for. It does not mean the account is secure. Raqib checks the paths it knows about; it does not prove their absence everywhere, and it does not yet read resource policies, service control policies, or permissions boundaries, which can widen or narrow real access.
 
 Raqib covers AWS IAM today. Azure and GCP and Kubernetes have the same shape of problem and are the natural next step.
+
+## What it defends against
+
+Raqib is the defensive reading of the moves an intruder makes after landing a foothold: gaining more permission than intended, reaching another principal or account, and blinding the account's own logging. It covers privilege escalation and lateral movement in full from IAM data, a good part of persistence and reconnaissance, and the audit trail tampering that hides the rest. Exfiltration lives in resource policies that the authorization details do not carry, so it is the next area to add. Run `python3 raqib.py defends` for the current map.
 
 ## How it works
 

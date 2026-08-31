@@ -13,7 +13,11 @@
             "Statement": [
               {
                 "Effect": "Allow",
-                "Action": ["iam:PassRole", "lambda:CreateFunction", "lambda:InvokeFunction"],
+                "Action": [
+                  "iam:PassRole",
+                  "lambda:CreateFunction",
+                  "lambda:InvokeFunction"
+                ],
                 "Resource": "*"
               }
             ]
@@ -37,14 +41,19 @@
             "Statement": [
               {
                 "Effect": "Allow",
-                "Action": ["iam:CreatePolicyVersion", "iam:SetDefaultPolicyVersion"],
+                "Action": [
+                  "iam:CreatePolicyVersion",
+                  "iam:SetDefaultPolicyVersion"
+                ],
                 "Resource": "*"
               }
             ]
           }
         }
       ],
-      "GroupList": ["developers"],
+      "GroupList": [
+        "developers"
+      ],
       "AttachedManagedPolicies": [],
       "Tags": []
     },
@@ -59,7 +68,11 @@
           "PolicyDocument": {
             "Version": "2012-10-17",
             "Statement": [
-              { "Effect": "Allow", "Action": "*", "Resource": "*" }
+              {
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*"
+              }
             ]
           }
         }
@@ -79,7 +92,11 @@
           "PolicyDocument": {
             "Version": "2012-10-17",
             "Statement": [
-              { "Effect": "Allow", "Action": "iam:*", "Resource": "*" }
+              {
+                "Effect": "Allow",
+                "Action": "iam:*",
+                "Resource": "*"
+              }
             ]
           }
         }
@@ -99,7 +116,11 @@
           "PolicyDocument": {
             "Version": "2012-10-17",
             "Statement": [
-              { "Effect": "Allow", "Action": "iam:UpdateLoginProfile", "Resource": "arn:aws:iam::111122223333:user/support-agent" }
+              {
+                "Effect": "Allow",
+                "Action": "iam:UpdateLoginProfile",
+                "Resource": "arn:aws:iam::111122223333:user/support-agent"
+              }
             ]
           }
         }
@@ -116,8 +137,68 @@
       "UserPolicyList": [],
       "GroupList": [],
       "AttachedManagedPolicies": [
-        { "PolicyName": "AdministratorAccess", "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess" }
+        {
+          "PolicyName": "AdministratorAccess",
+          "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess"
+        }
       ],
+      "Tags": []
+    },
+    {
+      "UserName": "log-manager",
+      "UserId": "AIDAEXAMPLE0007",
+      "Arn": "arn:aws:iam::111122223333:user/log-manager",
+      "Path": "/",
+      "UserPolicyList": [
+        {
+          "PolicyName": "logging-ops",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "cloudtrail:StopLogging",
+                  "cloudtrail:DeleteTrail",
+                  "guardduty:DeleteDetector",
+                  "config:StopConfigurationRecorder"
+                ],
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ],
+      "GroupList": [],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    },
+    {
+      "UserName": "bounded-operator",
+      "UserId": "AIDAEXAMPLE0008",
+      "Arn": "arn:aws:iam::111122223333:user/bounded-operator",
+      "Path": "/",
+      "PermissionsBoundary": {
+        "PermissionsBoundaryType": "Policy",
+        "PermissionsBoundaryArn": "arn:aws:iam::111122223333:policy/s3-only-boundary"
+      },
+      "UserPolicyList": [
+        {
+          "PolicyName": "wide-open",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "*",
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ],
+      "GroupList": [],
+      "AttachedManagedPolicies": [],
       "Tags": []
     }
   ],
@@ -128,7 +209,10 @@
       "Arn": "arn:aws:iam::111122223333:group/developers",
       "GroupPolicyList": [],
       "AttachedManagedPolicies": [
-        { "PolicyName": "ec2-run", "PolicyArn": "arn:aws:iam::111122223333:policy/ec2-run" }
+        {
+          "PolicyName": "ec2-run",
+          "PolicyArn": "arn:aws:iam::111122223333:policy/ec2-run"
+        }
       ]
     }
   ],
@@ -140,7 +224,13 @@
       "AssumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
-          { "Effect": "Allow", "Principal": { "AWS": "*" }, "Action": "sts:AssumeRole" }
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "AWS": "*"
+            },
+            "Action": "sts:AssumeRole"
+          }
         ]
       },
       "RolePolicyList": [
@@ -148,7 +238,13 @@
           "PolicyName": "reader",
           "PolicyDocument": {
             "Version": "2012-10-17",
-            "Statement": [ { "Effect": "Allow", "Action": "s3:GetObject", "Resource": "*" } ]
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "*"
+              }
+            ]
           }
         }
       ],
@@ -162,7 +258,13 @@
       "AssumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
-          { "Effect": "Allow", "Principal": { "AWS": "arn:aws:iam::999988887777:root" }, "Action": "sts:AssumeRole" }
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "AWS": "arn:aws:iam::999988887777:root"
+            },
+            "Action": "sts:AssumeRole"
+          }
         ]
       },
       "RolePolicyList": [],
@@ -176,7 +278,13 @@
       "AssumeRolePolicyDocument": {
         "Version": "2012-10-17",
         "Statement": [
-          { "Effect": "Allow", "Principal": { "Service": "lambda.amazonaws.com" }, "Action": "sts:AssumeRole" }
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "lambda.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
         ]
       },
       "RolePolicyList": [
@@ -184,7 +292,16 @@
           "PolicyName": "app",
           "PolicyDocument": {
             "Version": "2012-10-17",
-            "Statement": [ { "Effect": "Allow", "Action": ["dynamodb:GetItem", "dynamodb:PutItem"], "Resource": "*" } ]
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "dynamodb:GetItem",
+                  "dynamodb:PutItem"
+                ],
+                "Resource": "*"
+              }
+            ]
           }
         }
       ],
@@ -206,7 +323,37 @@
           "Document": {
             "Version": "2012-10-17",
             "Statement": [
-              { "Effect": "Allow", "Action": ["ec2:RunInstances", "iam:PassRole"], "Resource": "*" }
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:RunInstances",
+                  "iam:PassRole"
+                ],
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "PolicyName": "s3-only-boundary",
+      "Arn": "arn:aws:iam::111122223333:policy/s3-only-boundary",
+      "PolicyId": "ANPAEXAMPLE0002",
+      "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
+      "PolicyVersionList": [
+        {
+          "VersionId": "v1",
+          "IsDefaultVersion": true,
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": "s3:*",
+                "Resource": "*"
+              }
             ]
           }
         }

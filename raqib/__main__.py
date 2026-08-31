@@ -51,6 +51,14 @@ def cmd_audit(args):
 
     if args.json:
         sys.stdout.write(report_mod.as_json(findings, summary, meta) + "\n")
+    elif args.sarif:
+        out = report_mod.sarif(findings, meta)
+        if args.output:
+            with open(args.output, "w", encoding="utf-8") as fh:
+                fh.write(out)
+            sys.stdout.write("wrote " + args.output + "\n")
+        else:
+            sys.stdout.write(out + "\n")
     elif args.html:
         html = report_mod.html_report(findings, summary, meta)
         if args.output:
@@ -100,6 +108,7 @@ def build_parser():
     a.add_argument("--credential-report", metavar="CSV", help="an IAM credential report CSV, for stale key and MFA findings")
     a.add_argument("--max-key-age", type=int, default=90, metavar="DAYS", help="access key age that counts as stale (default 90)")
     a.add_argument("--json", action="store_true", help="write the findings as JSON")
+    a.add_argument("--sarif", action="store_true", help="write SARIF for upload to code scanning")
     a.add_argument("--html", action="store_true", help="write a self contained HTML report to stdout")
     a.add_argument("-o", "--output", metavar="FILE", help="also write an HTML report to this file")
     a.add_argument("--title", help="a title for the report")
@@ -109,7 +118,37 @@ def build_parser():
     paths = sub.add_parser("paths", help="list the escalation paths Raqib checks")
     paths.set_defaults(func=cmd_paths)
 
+    defends = sub.add_parser("defends", help="show which attacker tactics Raqib covers")
+    defends.set_defaults(func=cmd_defends)
+
     return p
+
+
+COVERAGE = [
+    ("reconnaissance", "partial",
+     "Flags full control of a sensitive service through a wildcard, the broad visibility used to map an account."),
+    ("privilege escalation", "covered",
+     "The known IAM escalation paths, administrator by wildcard or attached policy, and service wildcards, read with permissions boundary awareness."),
+    ("persistence", "partial",
+     "Flags the create credential and login profile paths that establish a foothold, and users carrying two active access keys."),
+    ("lateral movement", "covered",
+     "Role trust policies that are assumable by anyone, trust an external account, or federate without a condition."),
+    ("exfiltration", "planned",
+     "Needs resource policies such as S3 bucket and KMS key policies, which are not in the authorization details. This is the next area to add."),
+    ("defense evasion", "covered",
+     "Principals, beyond the administrators already flagged, that can stop or delete CloudTrail, Config, GuardDuty, log groups, and Security Hub."),
+]
+
+
+def cmd_defends(args):
+    print("What Raqib watches for, by attacker tactic:\n")
+    for tactic, state, text in COVERAGE:
+        print("  " + tactic + "  [" + state + "]")
+        print("    " + text)
+        print()
+    print("Raqib reads an AWS IAM export offline. It reports the paths, not the use of them,")
+    print("and a clean report means the export named nothing these rules look for.")
+    return 0
 
 
 def main(argv=None):

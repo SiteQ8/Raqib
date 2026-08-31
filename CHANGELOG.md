@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0
+
+Broader coverage of the tactics an intruder uses after a foothold, plus reporting that ties each finding to the technique it defends against.
+
+- New detection for audit trail tampering: principals, beyond the administrators already flagged, that can stop or delete CloudTrail, Config, GuardDuty, log groups, or Security Hub
+- Permissions boundary awareness: a finding is lowered when an attached boundary would cap the escalation it describes, and says so
+- A second active access key on a user is now flagged as a persistence footprint
+- Every finding carries its MITRE ATT&CK technique, shown in the terminal and HTML reports
+- SARIF output with --sarif, for upload to code scanning and the repository security tab
+- A new defends command that shows which attacker tactics Raqib covers
+- More samples and 59 tests
+
 ## 0.1.0
 
 First release.

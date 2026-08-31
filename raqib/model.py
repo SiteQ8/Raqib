@@ -66,6 +66,8 @@ class Principal:
         self.attached_admin = []     # names of attached managed policies that grant admin
         self.groups = []             # group names, for users
         self.tags = {}
+        self.boundary_arn = None     # a permissions boundary, when one is set
+        self.boundary_name = None
 
     def add_document(self, document, source):
         for raw in _as_list(document.get("Statement")):
@@ -145,6 +147,45 @@ class Account:
                 return True
         return False
 
+    def doc_allows(self, document, action):
+        """Evaluate a raw policy document (such as a permissions boundary) for an action.
+        A boundary caps a principal: an action is available only if the boundary allows it."""
+        if not document:
+            return True
+        action = action.lower()
+        stmts = _as_list(document.get("Statement"))
+        # an explicit Deny in the boundary wins
+        for raw in stmts:
+            if raw.get("Effect") != "Deny":
+                continue
+            st = Statement(raw, "boundary")
+            if st.not_actions:
+                if not any(_match(pp, action) for pp in st.not_actions):
+                    return False
+            elif any(_match(pp, action) for pp in st.actions):
+                return False
+        for raw in stmts:
+            if raw.get("Effect") != "Allow":
+                continue
+            st = Statement(raw, "boundary")
+            if st.not_actions:
+                if not any(_match(pp, action) for pp in st.not_actions):
+                    return True
+            elif any(_match(pp, action) for pp in st.actions):
+                return True
+        return False
+
+    def boundary_caps(self, principal, actions):
+        """True when a permissions boundary would block at least one of these actions,
+        meaning the escalation the actions describe is likely capped."""
+        if not principal.boundary_arn:
+            return False
+        m = self.managed.get(principal.boundary_arn)
+        doc = m.get("document") if m else None
+        if doc is None:
+            return False  # boundary set but its document is not in the export; cannot tell
+        return not all(self.doc_allows(doc, a) for a in actions)
+
     def has_all(self, principal, actions, require_unscoped=False):
         return all(self.allows(principal, a, require_unscoped=require_unscoped) for a in actions)
 
@@ -160,6 +201,14 @@ class Account:
 
 
 ADMIN_POLICY_ARNS = {"arn:aws:iam::aws:policy/AdministratorAccess"}
+
+
+def _set_boundary(acct, principal, detail):
+    b = detail.get("PermissionsBoundary")
+    if isinstance(b, dict) and b.get("PermissionsBoundaryArn"):
+        principal.boundary_arn = b["PermissionsBoundaryArn"]
+        m = acct.managed.get(principal.boundary_arn)
+        principal.boundary_name = m["name"] if m else principal.boundary_arn
 
 
 def load(raw):
@@ -199,6 +248,7 @@ def load(raw):
     for usr in raw.get("UserDetailList", []):
         p = Principal("user", usr.get("UserName", ""), usr.get("Arn", ""))
         p.tags = {t.get("Key"): t.get("Value") for t in usr.get("Tags", [])}
+        _set_boundary(acct, p, usr)
         for inline in usr.get("UserPolicyList", []):
             p.add_document(_as_document(inline.get("PolicyDocument", {})), "inline " + inline.get("PolicyName", ""))
         for att in usr.get("AttachedManagedPolicies", []):
@@ -212,6 +262,7 @@ def load(raw):
     for role in raw.get("RoleDetailList", []):
         p = Principal("role", role.get("RoleName", ""), role.get("Arn", ""))
         p.tags = {t.get("Key"): t.get("Value") for t in role.get("Tags", [])}
+        _set_boundary(acct, p, role)
         trust = role.get("AssumeRolePolicyDocument")
         if trust is not None:
             p.trust = _as_document(trust)

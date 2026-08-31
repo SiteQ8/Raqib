@@ -207,20 +207,40 @@ def _wild_services(acct, p):
     return out
 
 
+def _lower(severity):
+    steps = {"critical": "high", "high": "medium", "medium": "low", "low": "low"}
+    return steps.get(severity, severity)
+
+
+def _boundary_note(acct, p, actions):
+    """Return a note when a permissions boundary appears to cap these actions."""
+    if not p.boundary_arn:
+        return None
+    if acct.boundary_caps(p, actions):
+        return (" A permissions boundary (" + (p.boundary_name or p.boundary_arn)
+                + ") is attached and does not grant these actions, so the boundary likely caps this path. Verify the boundary before relying on it.")
+    return (" A permissions boundary (" + (p.boundary_name or p.boundary_arn)
+            + ") is attached but its own permissions still allow this, so it does not close the path.")
+
+
 def check_privilege_escalation(acct):
     findings = []
     n = 0
     for p in acct.principals:
         admin = acct.admin_statement(p)
         if admin or p.attached_admin:
+            capped = acct.boundary_caps(p, ["*"])
+            severity = "high" if capped else "critical"
             title = "Administrator by attached policy" if p.attached_admin else "Administrator by wildcard permission"
             if p.attached_admin:
                 detail = f"{_principal_label(p)} has {', '.join(sorted(set(p.attached_admin)))} attached, which grants full control of the account."
             else:
                 verb = "an Allow on NotAction with resource *" if any(s.not_actions for s in [admin]) else "an Allow on action * with resource *"
                 detail = f"{_principal_label(p)} has {verb}, which is equivalent to AdministratorAccess."
+            if capped:
+                detail += f" A permissions boundary ({p.boundary_name or p.boundary_arn}) is attached, so effective permissions are limited to the boundary rather than the whole account. Verify the boundary."
             findings.append(_finding(
-                "k" + str(n), "critical", title, p, detail,
+                "k" + str(n), severity, title, p, detail,
                 "Replace the blanket grant with only the actions this principal needs. Keep administrator access to a small, monitored set of principals.",
                 "privilege escalation",
             ))
@@ -232,20 +252,24 @@ def check_privilege_escalation(acct):
             services = {a.split(":", 1)[0] for a in method["actions"]}
             if services and services.issubset(wild):
                 continue  # a service wildcard already covers this path and is reported on its own
+            note = _boundary_note(acct, p, method["actions"])
+            capped = bool(note) and acct.boundary_caps(p, method["actions"])
             if not acct.has_all(p, method["actions"], require_unscoped=True):
                 # not open unconditionally on resource *; see if a scoped grant exists
                 if acct.has_all(p, method["actions"]):
+                    sev = _lower("medium") if capped else "medium"
                     findings.append(_finding(
-                        "k" + str(n), "medium", method["title"] + ", possibly limited by a resource restriction", p,
-                        f"{_principal_label(p)} can {method['enables'][0].lower() + method['enables'][1:]} The grant is scoped to specific resources, so confirm the scope does not include a target more privileged than this principal.",
+                        "k" + str(n), sev, method["title"] + ", possibly limited by a resource restriction", p,
+                        f"{_principal_label(p)} can {method['enables'][0].lower() + method['enables'][1:]} The grant is scoped to specific resources, so confirm the scope does not include a target more privileged than this principal." + (note or ""),
                         method["fix"], "privilege escalation",
                         refs=["escalation path: " + method["id"]],
                     ))
                     n += 1
                 continue
+            sev = _lower("high") if capped else "high"
             findings.append(_finding(
-                "k" + str(n), "high", method["title"], p,
-                f"{_principal_label(p)} can {method['enables'][0].lower() + method['enables'][1:]}",
+                "k" + str(n), sev, method["title"], p,
+                f"{_principal_label(p)} can {method['enables'][0].lower() + method['enables'][1:]}" + (note or ""),
                 method["fix"], "privilege escalation",
                 refs=["escalation path: " + method["id"]],
             ))
@@ -333,12 +357,95 @@ def _as_list(value):
     return value if isinstance(value, list) else [value]
 
 
+# The capabilities that let a principal blind the account, the defensive mirror of
+# an evidence destruction step. Each group is a friendly label and the actions that
+# grant it. A principal that holds any of these can weaken what the account records.
+TAMPER_GROUPS = [
+    ("stop or delete CloudTrail", ["cloudtrail:stoplogging", "cloudtrail:deletetrail"]),
+    ("reconfigure CloudTrail so it records less", ["cloudtrail:updatetrail", "cloudtrail:puteventselectors"]),
+    ("stop or delete Config recording", ["config:stopconfigurationrecorder", "config:deleteconfigurationrecorder", "config:deletedeliverychannel"]),
+    ("disable or delete GuardDuty", ["guardduty:deletedetector", "guardduty:updatedetector", "guardduty:deletemembers", "guardduty:disassociatemembers"]),
+    ("delete CloudWatch log groups", ["logs:deleteloggroup", "logs:deletelogstream"]),
+    ("disable Security Hub", ["securityhub:disablesecurityhub", "securityhub:batchdisablestandards"]),
+    ("delete an access analyzer", ["accessanalyzer:deleteanalyzer"]),
+]
+
+
+def check_log_tampering(acct):
+    """Find principals that can disable or delete the account's audit trail.
+
+    This is the defensive counterpart to an evidence destruction step: before or
+    after acting, an intruder turns off what would record them. Knowing who can do
+    that, beyond the administrators already flagged, is worth surfacing on its own.
+    """
+    findings = []
+    n = 0
+    for p in acct.principals:
+        if acct.admin_statement(p) or p.attached_admin:
+            continue  # administrators are already reported; this is about narrower grants
+        capabilities = []
+        unscoped = False
+        for label, actions in TAMPER_GROUPS:
+            if any(acct.allows(p, a) for a in actions):
+                capabilities.append(label)
+                if any(acct.allows(p, a, require_unscoped=True) for a in actions):
+                    unscoped = True
+        if not capabilities:
+            continue
+        sev = "high" if unscoped else "medium"
+        joined = capabilities[0] if len(capabilities) == 1 else ", ".join(capabilities[:-1]) + ", and " + capabilities[-1]
+        findings.append(_finding(
+            "e" + str(n), sev, "Can weaken the audit trail", p,
+            f"{_principal_label(p)} can {joined}. An intruder holding this principal would use it to reduce or erase the record of what they did.",
+            "Remove these actions from the principal, and protect logging with an organization policy so a single account cannot turn it off.",
+            "defense evasion",
+        ))
+        n += 1
+    return findings
+
+
+# MITRE ATT&CK techniques, assigned by the shape of each finding so a report ties
+# to the adversary behaviour it defends against.
+def _technique_for(f):
+    tactic = f.get("tactic")
+    title = f.get("title", "")
+    refs = " ".join(f.get("refs", []))
+    if tactic == "defense evasion":
+        return {"id": "T1562.008", "name": "Impair Defenses: Disable or Modify Cloud Logs"}
+    if tactic == "lateral movement":
+        return {"id": "T1199", "name": "Trusted Relationship"}
+    if tactic == "reconnaissance":
+        return {"id": "T1580", "name": "Cloud Infrastructure Discovery"}
+    if tactic == "exposure":
+        return {"id": "T1078.004", "name": "Valid Accounts: Cloud Accounts"}
+    if tactic == "persistence":
+        return {"id": "T1098.001", "name": "Account Manipulation: Additional Cloud Credentials"}
+    # privilege escalation
+    if "Administrator" in title or "service wildcard" in title:
+        return {"id": "T1078.004", "name": "Valid Accounts: Cloud Accounts"}
+    if "passrole" in refs:
+        return {"id": "T1548", "name": "Abuse Elevation Control Mechanism"}
+    if "create-access-key" in refs:
+        return {"id": "T1098.001", "name": "Account Manipulation: Additional Cloud Credentials"}
+    if "login-profile" in refs:
+        return {"id": "T1098", "name": "Account Manipulation"}
+    return {"id": "T1098.003", "name": "Account Manipulation: Additional Cloud Roles"}
+
+
+def apply_techniques(findings):
+    for f in findings:
+        f["technique"] = _technique_for(f)
+    return findings
+
+
 def run(acct):
     """Run every rule and return the findings, ordered by severity."""
     findings = []
     findings += check_privilege_escalation(acct)
     findings += check_trust(acct)
     findings += check_wildcards(acct)
+    findings += check_log_tampering(acct)
+    apply_techniques(findings)
     order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
     findings.sort(key=lambda f: order.get(f["severity"], 9))
     return findings

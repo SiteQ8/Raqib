@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "raqib"
-version = "0.1.0"
+version = "0.2.0"
 description = "Read only AWS IAM exposure auditor. Finds the privilege escalation paths, trust risks, and wildcard permissions attackers exploit, from an IAM export."
 readme = "README.md"
 requires-python = ">=3.8"
