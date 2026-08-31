@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.11.0
+
+Deeper lateral movement coverage on Azure, GCP, and Kubernetes, and a fix to the Azure model.
+
+- GCP: a default service account with a broad role, a pivot an intruder inherits from any compute it is attached to, and a group holding Owner or Editor, an opaque grant whose membership the IAM policy does not show. The role granted to everyone is kept
+- Kubernetes: reaching the kubelet on nodes through nodes/proxy, which runs in the pods on a node, and port forwarding to pods, a tunnel to a pod and what it can reach. Reading secrets across the cluster is kept
+- Azure: an identity that holds roles in more than one subscription, a bridge across them, alongside the broad reach service principal already covered
+- Fix: the bash Azure model kept only the last role assignment for a principal that had several, because it merged with the wrong operator. It now accumulates every assignment, matching the Python engine. This surfaced once a principal held roles in two subscriptions; the parity test now covers it
+- New sample principals and six tests. 133 tests, the two engines in lockstep
+
+
 ## 0.10.0
 
 Deeper persistence coverage on Azure, GCP, and Kubernetes, bringing each closer to the AWS depth. The bash scanner and the Python engine gain the checks together.

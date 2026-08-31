@@ -596,6 +596,77 @@
           "namespace": "platform"
         }
       ]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {
+        "name": "node-proxier"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "nodes/proxy"
+          ],
+          "verbs": [
+            "get",
+            "create"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {
+        "name": "port-forwarder"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods/portforward"
+          ],
+          "verbs": [
+            "create"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "ClusterRoleBinding",
+      "metadata": {
+        "name": "b-nodeproxy"
+      },
+      "roleRef": {
+        "kind": "ClusterRole",
+        "name": "node-proxier"
+      },
+      "subjects": [
+        {
+          "kind": "User",
+          "name": "node-reacher"
+        }
+      ]
+    },
+    {
+      "kind": "ClusterRoleBinding",
+      "metadata": {
+        "name": "b-portfwd"
+      },
+      "roleRef": {
+        "kind": "ClusterRole",
+        "name": "port-forwarder"
+      },
+      "subjects": [
+        {
+          "kind": "User",
+          "name": "tunneler"
+        }
+      ]
     }
   ]
 }

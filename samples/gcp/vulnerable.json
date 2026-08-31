@@ -95,6 +95,18 @@
       "members": [
         "user:scheduler-admin@example.com"
       ]
+    },
+    {
+      "role": "roles/editor",
+      "members": [
+        "serviceAccount:123456789-compute@developer.gserviceaccount.com"
+      ]
+    },
+    {
+      "role": "roles/editor",
+      "members": [
+        "group:platform-team@example.com"
+      ]
     }
   ],
   "customRoles": [

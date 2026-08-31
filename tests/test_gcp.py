@@ -77,6 +77,14 @@ class TestGcpFindings(unittest.TestCase):
         findings, _, _ = audit(load("vulnerable.json"))
         self.assertTrue(any("plant a scheduled job" in f["title"] and f["tactic"] == "persistence" for f in findings))
 
+    def test_default_service_account_broad_role_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("default service account holds a broad role" in f["title"] and f["severity"] == "high" for f in findings))
+
+    def test_group_powerful_role_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("group holds a powerful role" in f["title"] and f["severity"] == "medium" for f in findings))
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)

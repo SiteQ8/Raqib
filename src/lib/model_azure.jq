@@ -54,8 +54,10 @@ def principals:
             // $defs[("name:" + ($rname|ascii_downcase))]
             // ( (if $rname != "" then $rname else builtin_name($rdid) end) as $bn
                  | {a: builtin_actions($bn), na: [], da: [], name: $bn} ) ) as $entry
-        | .[$pid] += {name:$pname, kind:$ptype, arn:$pid,
-                      assignments: [ {name:$entry.name, a:$entry.a, na:$entry.na, da:$entry.da, scope:$scope, rank:scope_rank($scope)} ] } )
+        | .[$pid].name = $pname
+        | .[$pid].kind = $ptype
+        | .[$pid].arn = $pid
+        | .[$pid].assignments = ((.[$pid].assignments // []) + [ {name:$entry.name, a:$entry.a, na:$entry.na, da:$entry.da, scope:$scope, rank:scope_rank($scope)} ]) )
       | [ .[] ] )
   | map(. + {broadest: ([ .assignments[].rank ] | max // 0)});
 
