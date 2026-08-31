@@ -10,7 +10,7 @@
 # secret, object, or key. It reads who can do what, and reports it.
 
 set -u
-RAQIB_VERSION="0.14.0"
+RAQIB_VERSION="0.15.0"
 RAQIB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck disable=SC1091
@@ -60,6 +60,8 @@ usage() {
 '  ./raqib.sh diff OLD.json NEW.json [--cloud CLOUD] [--strict]' \
 '             scan two exports and report which findings appeared or resolved,' \
 '             to catch a posture regression between two points in time.' \
+'  ./raqib.sh score [--cloud CLOUD] [--offline EXPORT.json]' \
+'             rate the posture and rank the principals to fix first.' \
 '' \
 'Other options:' \
 '  --credential-report FILE   read a credential report CSV you already captured' \
@@ -271,11 +273,100 @@ cmd_diff() {
   fi
 }
 
+SCORE_JQ='
+({"critical":0,"high":1,"medium":2,"low":3}) as $sr
+| . as $f
+| ([$f[]|select(.severity=="critical")]|length) as $crit
+| ([$f[]|select(.severity=="high")]|length) as $high
+| ([$f[]|select(.severity=="medium")]|length) as $med
+| ([$f[]|select(.severity=="low")]|length) as $low
+| (($crit*25)+($high*8)+($med*2)+($low*0.5)) as $pen
+| ((100-$pen) | if . < 0 then 0 else . end | floor) as $score
+| (if $score>=90 then "A" elif $score>=80 then "B" elif $score>=70 then "C" elif $score>=60 then "D" else "F" end) as $grade
+| ($f | group_by(.principal.arn // .principal.name // "")
+      | map( . as $grp | ($grp | sort_by($sr[.severity]) | .[0]) as $w
+             | {kind:($w.principal.kind // "account"), name:($w.principal.name // "the account"),
+                count:($grp|length), worst:$w.severity, title:$w.title, fix:$w.fix} )
+      | sort_by([ $sr[.worst], (0 - .count) ]) ) as $g
+| {score:$score, grade:$grade, total:($f|length),
+   principals:([$f[]|(.principal.arn // .principal.name // "")]|unique|length),
+   counts:{critical:$crit,high:$high,medium:$med,low:$low},
+   by_tactic:($f|reduce .[] as $x ({}; .[$x.tactic]=((.[$x.tactic]//0)+1))),
+   top:($g[0:6])}
+'
+
+report_score() {
+  local label="$1" sj="$2"
+  local score grade total princ crit high med low
+  score=$(jq -r '.score' <<<"$sj"); grade=$(jq -r '.grade' <<<"$sj")
+  total=$(jq -r '.total' <<<"$sj"); princ=$(jq -r '.principals' <<<"$sj")
+  crit=$(jq -r '.counts.critical' <<<"$sj"); high=$(jq -r '.counts.high' <<<"$sj")
+  med=$(jq -r '.counts.medium' <<<"$sj"); low=$(jq -r '.counts.low' <<<"$sj")
+  local gcolor=$C_GREEN
+  case "$grade" in A) gcolor=$C_GREEN;; B) gcolor=$C_CYAN;; C) gcolor=$C_YEL;; D) gcolor=$C_RED;; F) gcolor=$C_MAG;; esac
+  printf '\n  %s%s posture%s\n' "$C_BOLD" "$label" "$C_RESET"
+  printf '  %sGrade %s%s%s   %sscore %s/100%s   %s%s findings on %s principals%s\n\n' \
+    "$C_BOLD" "$gcolor" "$grade" "$C_RESET" "$C_DIM" "$score" "$C_RESET" "$C_DIM" "$total" "$princ" "$C_RESET"
+  printf '  %s%s critical%s   %s%s high%s   %s%s medium%s   %s%s low%s\n\n' \
+    "$C_MAG" "$crit" "$C_RESET" "$C_RED" "$high" "$C_RESET" "$C_YEL" "$med" "$C_RESET" "$C_CYAN" "$low" "$C_RESET"
+  if [ "$total" -eq 0 ]; then
+    printf '  %sNo findings. The scan named nothing these rules look for.%s\n\n' "$C_GREEN" "$C_RESET"
+    return 0
+  fi
+  printf '  %s%sFix these first%s %s(the principals that carry the most risk)%s\n' "$C_BOLD" "$C_CYAN" "$C_RESET" "$C_DIM" "$C_RESET"
+  local i=0 n
+  n=$(jq -r '.top|length' <<<"$sj")
+  while [ "$i" -lt "$n" ]; do
+    local kind name count worst title fix scolor
+    kind=$(jq -r ".top[$i].kind" <<<"$sj"); name=$(jq -r ".top[$i].name" <<<"$sj")
+    count=$(jq -r ".top[$i].count" <<<"$sj"); worst=$(jq -r ".top[$i].worst" <<<"$sj")
+    title=$(jq -r ".top[$i].title" <<<"$sj"); fix=$(jq -r ".top[$i].fix" <<<"$sj")
+    case "$worst" in critical) scolor=$C_MAG;; high) scolor=$C_RED;; medium) scolor=$C_YEL;; low) scolor=$C_CYAN;; esac
+    printf '\n  %s%s%s  %s[%s]%s %s%s %s%s  %s(%s %s)%s\n' \
+      "$C_BOLD" "$((i+1))" "$C_RESET" "$scolor" "$worst" "$C_RESET" "$C_BOLD" "$kind" "$name" "$C_RESET" \
+      "$C_DIM" "$count" "$([ "$count" = "1" ] && echo finding || echo findings)" "$C_RESET"
+    printf '     %s\n' "$title"
+    printf '     %sfix:%s %s\n' "$C_GREEN" "$C_RESET" "$fix"
+    i=$((i+1))
+  done
+  printf '\n  %sBy tactic:%s ' "$C_DIM" "$C_RESET"
+  jq -r '.by_tactic | to_entries | sort_by(-.value) | map(.key + " " + (.value|tostring)) | join("   ")' <<<"$sj"
+  printf '\n'
+}
+
+# score a scan: run it, then rate the posture and rank the principals to fix first.
+cmd_score() {
+  local as_json=0 label="your cloud" pass=() a prev=""
+  for a in "$@"; do
+    if [ "$a" = "--json" ]; then as_json=1; else pass+=("$a"); fi
+  done
+  local i
+  for ((i=0; i<${#pass[@]}; i++)); do
+    if [ "${pass[$i]}" = "--cloud" ] && [ $((i+1)) -lt ${#pass[@]} ]; then
+      label="$(echo "${pass[$((i+1))]}" | tr '[:lower:]' '[:upper:]')"
+    fi
+    if [ "${pass[$i]}" = "--offline" ] && [ $((i+1)) -lt ${#pass[@]} ] && [ "$label" = "your cloud" ]; then
+      local det; det="$(detect_from_file "${pass[$((i+1))]}" 2>/dev/null)"
+      [ -n "$det" ] && label="$(echo "$det" | tr '[:lower:]' '[:upper:]')"
+    fi
+  done
+  local findings sj
+  findings="$(bash "$RAQIB_ROOT/raqib.sh" scan "${pass[@]}" --json 2>/dev/null)"
+  [ -n "$findings" ] || findings="[]"
+  sj="$(printf '%s' "$findings" | jq -c "$SCORE_JQ" 2>/dev/null)" || { log_error "could not score the scan"; exit 2; }
+  if [ "$as_json" -eq 1 ]; then
+    jq -n --argjson s "$sj" '$s'
+  else
+    report_score "$label" "$sj"
+  fi
+}
+
 main() {
   local sub="${1:-scan}"
   case "$sub" in
     defends) cmd_defends ;;
     diff) shift || true; cmd_diff "$@" ;;
+    score) shift || true; cmd_score "$@" ;;
     scan) shift || true; cmd_scan "$@" ;;
     -h|--help) banner; usage ;;
     --*) cmd_scan "$@" ;;

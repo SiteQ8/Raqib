@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.0
+
+A score command that turns a scan into a posture grade and an ordered list of what to fix, and a fix to a GCP model bug the score surfaced.
+
+- New **score** command, in both the bash scanner and the Python engine. It rates the posture of a scan, a grade from A to F and a number out of 100, then ranks the principals that carry the most risk, worst severity and most findings first, so there is a clear order to fix in. Run raqib.sh score, raqib.sh score --offline export.json, or python -m raqib score export.json, with --json for the machine readable form
+- Fix: the GCP model tested a public member against the wrong value, so the bash scanner mis-scored allUsers and allAuthenticatedUsers, reading a public grant as broad data access rather than the critical lateral finding it is. The Python engine was already correct, and the two now agree
+- The parity test now compares the two engines finding for finding, on severity, tactic, and principal, not only on the total count, so a divergence like that one cannot pass again
+- 145 tests
+
+
 ## 0.14.0
 
 Deeper reconnaissance and defense evasion, completing the six tactics in depth on every cloud.

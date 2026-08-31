@@ -147,6 +147,94 @@ def cmd_diff(args):
     return 0
 
 
+def compute_score(findings):
+    sr = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    counts = {s: sum(1 for f in findings if f["severity"] == s) for s in ["critical", "high", "medium", "low"]}
+    penalty = counts["critical"] * 25 + counts["high"] * 8 + counts["medium"] * 2 + counts["low"] * 0.5
+    score = int(max(0, 100 - penalty))
+    grade = "A" if score >= 90 else "B" if score >= 80 else "C" if score >= 70 else "D" if score >= 60 else "F"
+
+    def key(f):
+        p = f.get("principal") or {}
+        return p.get("arn") or p.get("name") or ""
+
+    groups = {}
+    for f in findings:
+        groups.setdefault(key(f), []).append(f)
+    top = []
+    for _, fs in groups.items():
+        worst = min(fs, key=lambda x: sr.get(x["severity"], 9))
+        p = worst.get("principal") or {}
+        top.append({"kind": p.get("kind") or "account", "name": p.get("name") or "the account",
+                    "count": len(fs), "worst": worst["severity"], "title": worst["title"], "fix": worst["fix"]})
+    top.sort(key=lambda t: (sr.get(t["worst"], 9), -t["count"]))
+    by_tactic = {}
+    for f in findings:
+        by_tactic[f["tactic"]] = by_tactic.get(f["tactic"], 0) + 1
+    principals = len({key(f) for f in findings})
+    return {"score": score, "grade": grade, "total": len(findings), "principals": principals,
+            "counts": counts, "by_tactic": by_tactic, "top": top[:6]}
+
+
+def cmd_score(args):
+    """Rate the posture of a scan and rank the principals to fix first."""
+    try:
+        export = _load_json(args.export)
+    except FileNotFoundError:
+        sys.stderr.write("raqib: no such file: " + args.export + "\n")
+        return 2
+    except json.JSONDecodeError as exc:
+        sys.stderr.write("raqib: the export is not valid JSON: " + str(exc) + "\n")
+        return 2
+    cred_csv = None
+    if args.credential_report:
+        try:
+            with open(args.credential_report, "r", encoding="utf-8") as fh:
+                cred_csv = fh.read()
+        except FileNotFoundError:
+            sys.stderr.write("raqib: no such credential report: " + args.credential_report + "\n")
+            return 2
+    try:
+        findings, summary, _ = audit(export, cloud=args.cloud, credential_report_csv=cred_csv)
+    except (ValueError, KeyError) as exc:
+        sys.stderr.write("raqib: could not read the export: " + str(exc) + "\n")
+        return 2
+
+    result = compute_score(findings)
+    label = (summary.get("cloud", "") or "your cloud").upper() if summary.get("cloud") else "Your cloud"
+
+    if args.json:
+        sys.stdout.write(json.dumps(result, indent=2) + "\n")
+        return 0
+
+    gcolor = {"A": "\033[32m", "B": "\033[36m", "C": "\033[33m", "D": "\033[31m", "F": "\033[35m"}.get(result["grade"], "")
+    dim, bold, reset = "\033[2m", "\033[1m", "\033[0m"
+    scol = {"critical": "\033[35m", "high": "\033[31m", "medium": "\033[33m", "low": "\033[36m"}
+    c = result["counts"]
+    print("\n  " + bold + label + " posture" + reset)
+    print("  " + bold + "Grade " + gcolor + result["grade"] + reset + "   " + dim + "score "
+          + str(result["score"]) + "/100" + reset + "   " + dim + str(result["total"])
+          + " findings on " + str(result["principals"]) + " principals" + reset + "\n")
+    print("  " + scol["critical"] + str(c["critical"]) + " critical" + reset + "   "
+          + scol["high"] + str(c["high"]) + " high" + reset + "   "
+          + scol["medium"] + str(c["medium"]) + " medium" + reset + "   "
+          + scol["low"] + str(c["low"]) + " low" + reset + "\n")
+    if result["total"] == 0:
+        print("  \033[32mNo findings. The scan named nothing these rules look for.\033[0m\n")
+        return 0
+    print("  " + bold + "\033[36mFix these first\033[0m " + dim + "(the principals that carry the most risk)" + reset)
+    for i, t in enumerate(result["top"], 1):
+        sc = scol.get(t["worst"], "")
+        noun = "finding" if t["count"] == 1 else "findings"
+        print("\n  " + bold + str(i) + reset + "  " + sc + "[" + t["worst"] + "]" + reset + " "
+              + bold + t["kind"] + " " + t["name"] + reset + "  " + dim + "(" + str(t["count"]) + " " + noun + ")" + reset)
+        print("     " + t["title"])
+        print("     \033[32mfix:\033[0m " + t["fix"])
+    tac = sorted(result["by_tactic"].items(), key=lambda kv: -kv[1])
+    print("\n  " + dim + "By tactic:" + reset + " " + "   ".join(k + " " + str(v) for k, v in tac))
+    return 0
+
+
 def cmd_paths(args):
     """List the escalation paths Raqib looks for."""
     print("Privilege escalation paths Raqib checks:\n")
@@ -195,6 +283,13 @@ def build_parser():
     d.add_argument("--json", action="store_true", help="write the diff as JSON")
     d.add_argument("--strict", action="store_true", help="exit 1 when a finding appeared")
     d.set_defaults(func=cmd_diff)
+
+    sc = sub.add_parser("score", help="rate the posture of an export and rank what to fix first")
+    sc.add_argument("export", help="path to the export JSON (AWS, Azure, GCP, or Kubernetes)")
+    sc.add_argument("--cloud", choices=["aws", "azure", "gcp", "k8s"], help="which cloud the export is from (detected when omitted)")
+    sc.add_argument("--credential-report", metavar="CSV", help="an AWS IAM credential report CSV, folded into the score")
+    sc.add_argument("--json", action="store_true", help="write the score as JSON")
+    sc.set_defaults(func=cmd_score)
 
     defends = sub.add_parser("defends", help="show which attacker tactics Raqib covers")
     defends.set_defaults(func=cmd_defends)
