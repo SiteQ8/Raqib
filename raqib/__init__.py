@@ -8,7 +8,7 @@ calls AWS and never touches an account.
 
 from . import model, rules, report, credentials
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 def audit(auth_details, credential_report_csv=None, max_key_age_days=90):
@@ -24,5 +24,6 @@ def audit(auth_details, credential_report_csv=None, max_key_age_days=90):
         findings = findings + credentials.check(credential_report_csv, max_key_age_days=max_key_age_days)
         order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
         findings.sort(key=lambda f: order.get(f["severity"], 9))
+    rules.apply_techniques(findings)
     summary = rules.summarize(findings, acct)
     return findings, summary, acct

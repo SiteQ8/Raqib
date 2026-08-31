@@ -44,6 +44,11 @@ def terminal(findings, summary, meta, stream):
             lines.append("  " + c(f["severity"], SEV_TERMINAL[f["severity"]].ljust(9)) + f["title"] + who)
             lines.append("          " + f["detail"])
             lines.append(c("dim", "          fix: " + f["fix"]))
+            tech = f.get("technique")
+            tline = "          defends against: " + f.get("tactic", "")
+            if tech:
+                tline += "  " + tech["id"] + " " + tech["name"]
+            lines.append(c("dim", tline))
             lines.append("")
     cc = summary["counts"]
     lines.append("  " + ", ".join(str(cc[s]) + " " + s for s in SEV_ORDER))
@@ -96,6 +101,10 @@ def html_report(findings, summary, meta):
                 refs = '<div class="refs">' + " ".join(e(r) for r in f["refs"]) + "</div>"
             tactic = f.get("tactic", "")
             tnote = _TACTIC_NOTE.get(tactic, "")
+            tech = f.get("technique")
+            techspan = ""
+            if tech:
+                techspan = f'<span class="tech">{e(tech["id"])} {e(tech["name"])}</span>'
             rows.append(
                 f'<div class="finding" data-sev="{f["severity"]}">'
                 f'<div class="bar" style="background:{sev_colors[f["severity"]]}"></div>'
@@ -104,7 +113,7 @@ def html_report(findings, summary, meta):
                 f'<span class="ttl">{e(f["title"])}</span>{who}</div>'
                 f'<div class="detail">{e(f["detail"])}</div>'
                 f'<div class="fix"><span class="fixlbl">fix</span> {e(f["fix"])}</div>'
-                f'<div class="tactic">defends against: {e(tactic)}{(" &middot; " + e(tnote)) if tnote else ""}</div>'
+                f'<div class="tactic">defends against: {e(tactic)}{(" &middot; " + e(tnote)) if tnote else ""} {techspan}</div>'
                 f'{refs}</div></div>'
             )
 
@@ -134,7 +143,8 @@ h1{{font-size:22px;margin:0 0 4px}}
 .detail{{color:var(--text);opacity:.92;font-size:13.5px;margin-top:6px}}
 .fix{{color:var(--dim);font-size:13px;margin-top:7px}}
 .fixlbl{{color:var(--accent);font-weight:600;text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;margin-right:4px}}
-.tactic{{color:var(--dim);font-size:11.5px;margin-top:8px;opacity:.8}}
+.tactic{{color:var(--dim);font-size:11.5px;margin-top:8px;opacity:.85}}
+.tech{{color:var(--accent);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;opacity:.9;margin-left:2px}}
 .refs{{color:var(--dim);font-size:11px;margin-top:4px;font-family:ui-monospace,Menlo,Consolas,monospace;opacity:.7}}
 .clean{{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;color:var(--dim)}}
 .note{{color:var(--dim);font-size:12px;margin-top:22px;border-top:1px solid var(--line);padding-top:14px}}
@@ -147,3 +157,55 @@ h1{{font-size:22px;margin:0 0 4px}}
 {"".join(rows)}
 <div class="note">A finding says what a permission would allow, not that it was used. A clean report means the export named nothing these rules look for, not that the account is secure. Read only analysis by <span class="mark">Raqib</span>.</div>
 </div></body></html>"""
+
+
+def sarif(findings, meta):
+    """Emit SARIF 2.1.0 so findings can be uploaded to code scanning.
+
+    There is no source line to point at, so every result is attached to the export
+    file, which lets a security tab group them under the audited account.
+    """
+    level = {"critical": "error", "high": "error", "medium": "warning", "low": "note"}
+    source = meta.get("source") or "iam-export.json"
+    rules_seen = {}
+    results = []
+    for f in findings:
+        rule_id = "raqib/" + f.get("tactic", "finding").replace(" ", "-") + "/" + f["id"]
+        tech = f.get("technique") or {}
+        if rule_id not in rules_seen:
+            rules_seen[rule_id] = {
+                "id": rule_id,
+                "name": f["title"],
+                "shortDescription": {"text": f["title"]},
+                "fullDescription": {"text": f["fix"]},
+                "properties": {"tags": [t for t in [f.get("tactic"), tech.get("id")] if t]},
+            }
+        who = ""
+        if f.get("principal"):
+            who = f["principal"]["kind"] + " " + f["principal"]["name"] + ": "
+        results.append({
+            "ruleId": rule_id,
+            "level": level.get(f["severity"], "warning"),
+            "message": {"text": who + f["detail"] + " Fix: " + f["fix"]},
+            "locations": [{
+                "physicalLocation": {
+                    "artifactLocation": {"uri": source},
+                    "region": {"startLine": 1},
+                }
+            }],
+            "properties": {"severity": f["severity"], "tactic": f.get("tactic"), "technique": tech.get("id")},
+            "partialFingerprints": {"raqib": rule_id + "|" + (f.get("principal") or {}).get("arn", "")},
+        })
+    doc = {
+        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {"driver": {
+                "name": "Raqib",
+                "informationUri": "https://github.com/SiteQ8/Raqib",
+                "rules": list(rules_seen.values()),
+            }},
+            "results": results,
+        }],
+    }
+    return json.dumps(doc, indent=2)

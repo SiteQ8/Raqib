@@ -82,4 +82,10 @@ def check(csv_text, max_key_age_days=90, now=None):
                 "Require multi factor authentication for every console user.", "exposure"))
             n += 1
 
+        if not is_root and row.get("access_key_1_active") == "true" and row.get("access_key_2_active") == "true":
+            findings.append(_finding("c" + str(n), "medium", "User has two active access keys",
+                user, f"{user} has two active access keys. A second key is a common way an intruder keeps a foothold, and it widens the surface a leak can come from.",
+                "Keep one active key per user, and remove the second unless a rotation is in progress.", "persistence"))
+            n += 1
+
     return findings
