@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Raqib · Read Only Cloud Exposure Auditor</title>
+<meta name="description" content="Raqib points at the cloud you are signed in to and reads its authorization configuration with read only calls, then reports the moves an intruder would make after a foothold, each with the fix. The defensive mirror of an offensive framework, across AWS, Azure, GCP, and Kubernetes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06080c; --bg2:#0c1018; --card:#0f1420; --card2:#141c2c;
+  --accent:#38bdf8; --accent2:#22d3ee; --accent-dim:#38bdf820; --accent-mid:#38bdf850;
+  --crit:#c084fc; --crit-dim:#c084fc22; --high:#ff4d67; --high-dim:#ff4d6722;
+  --med:#fbbf24; --med-dim:#fbbf2422; --low:#38bdf8; --low-dim:#38bdf822; --ok:#34d399;
+  --text:#e8edf5; --dim:#7a8ba8; --faint:#3d4f6a; --border:#1a2438; --border2:#243044;
+  --mono:'JetBrains Mono',monospace; --sans:'Outfit',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:52px 52px;opacity:.25;mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 20%,transparent 75%)}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
+.mono{font-family:var(--mono)}
+
+/* nav */
+nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:#06080ccc;border-bottom:1px solid var(--border)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:62px}
+.logo{font-family:var(--mono);font-weight:800;font-size:19px;letter-spacing:1px}
+.logo span{color:var(--accent)}
+.nav-links{display:flex;gap:26px;list-style:none}
+.nav-links a{color:var(--dim);font-size:14px;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:var(--accent)}
+.nav-gh{border:1px solid var(--border2);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--text);transition:.2s}
+.nav-gh:hover{border-color:var(--accent-mid);color:var(--accent)}
+@media(max-width:760px){.nav-links{display:none}}
+
+/* hero */
+.hero{padding:90px 0 70px;text-align:center}
+.badge{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12.5px;font-weight:600;
+  color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent-mid);border-radius:100px;padding:6px 14px;margin-bottom:26px}
+.badge b{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.hero h1{font-family:var(--mono);font-weight:800;font-size:clamp(56px,11vw,120px);letter-spacing:2px;line-height:.95;
+  background:linear-gradient(180deg,#fff,#8fd6f5);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 40px var(--accent-dim))}
+.hero .sub{font-size:clamp(18px,3vw,26px);font-weight:600;color:var(--text);margin-top:14px}
+.hero .arabic{font-size:15px;color:var(--accent2);font-family:var(--mono);margin-top:8px;letter-spacing:1px}
+.hero .desc{max-width:660px;margin:22px auto 0;color:var(--dim);font-size:16.5px}
+.hero-actions{display:flex;gap:14px;justify-content:center;margin-top:34px;flex-wrap:wrap}
+.btn{font-family:var(--mono);font-weight:600;font-size:14px;padding:13px 24px;border-radius:10px;cursor:pointer;transition:.2s;border:1px solid transparent}
+.btn-p{background:var(--accent);color:#06080c}
+.btn-p:hover{box-shadow:0 0 26px var(--accent-mid);transform:translateY(-1px)}
+.btn-s{background:transparent;border-color:var(--border2);color:var(--text)}
+.btn-s:hover{border-color:var(--accent-mid);color:var(--accent)}
+
+/* terminal mock */
+.term{max-width:720px;margin:52px auto 0;text-align:left;background:#0a0e16;border:1px solid var(--border2);border-radius:12px;overflow:hidden;box-shadow:0 30px 80px #0008}
+.term-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#0c1018;border-bottom:1px solid var(--border)}
+.term-bar i{width:12px;height:12px;border-radius:50%;display:inline-block}
+.term-bar .r{background:#ff5f57}.term-bar .y{background:#ffbd2e}.term-bar .g{background:#28c840}
+.term-bar span{margin-left:10px;font-family:var(--mono);font-size:12px;color:var(--faint)}
+.term-body{padding:18px 20px;font-family:var(--mono);font-size:13px;line-height:1.75;white-space:pre-wrap;overflow-x:auto}
+.term-body .p{color:var(--accent2)}.term-body .d{color:var(--faint)}.term-body .b{color:#cbd5e1}
+.sev-crit{color:var(--crit)}.sev-high{color:var(--high)}.sev-med{color:var(--med)}.sev-low{color:var(--low)}
+.term-body .fix{color:var(--ok)}
+
+/* sections */
+section{padding:72px 0;position:relative}
+.eyebrow{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);letter-spacing:1px;text-transform:lowercase;margin-bottom:12px}
+.s-head{max-width:640px;margin-bottom:44px}
+.s-head.center{margin-left:auto;margin-right:auto;text-align:center}
+.s-title{font-size:clamp(28px,4vw,40px);font-weight:700;letter-spacing:-.5px;line-height:1.15}
+.s-sub{color:var(--dim);font-size:16px;margin-top:14px}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}
+
+/* promise */
+.promise{background:linear-gradient(180deg,#0b1017,#080b11);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.promise-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:36px}
+.promise-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px}
+.promise-card .ico{font-family:var(--mono);color:var(--accent);font-size:22px;margin-bottom:12px}
+.promise-card h3{font-size:18px;font-weight:600;margin-bottom:8px}
+.promise-card p{color:var(--dim);font-size:14.5px}
+.guard{margin-top:28px;font-family:var(--mono);font-size:13px;color:var(--dim);background:#0a0e16;border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.guard b{color:var(--ok)}
+@media(max-width:820px){.promise-grid{grid-template-columns:1fr}}
+
+/* tactic cards */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:820px){.grid3{grid-template-columns:1fr}}
+.tcard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px;transition:.2s}
+.tcard:hover{background:var(--card2);border-color:var(--accent-mid);transform:translateY(-2px)}
+.tcard .ttag{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:1px}
+.tcard h3{font-size:19px;font-weight:600;margin:10px 0 8px;color:var(--text)}
+.tcard p{color:var(--dim);font-size:14.5px}
+.tcard .tech{font-family:var(--mono);font-size:11.5px;color:var(--accent);margin-top:14px;opacity:.85}
+
+/* explorer */
+.expl{background:linear-gradient(180deg,#080b11,#0b1017);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.controls{display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.tabs{display:flex;gap:6px;background:#0a0e16;border:1px solid var(--border);border-radius:10px;padding:5px}
+.tab{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--dim);padding:8px 16px;border-radius:7px;cursor:pointer;transition:.15s;border:none;background:transparent}
+.tab.on{background:var(--accent-dim);color:var(--accent)}
+.tab:hover:not(.on){color:var(--text)}
+.toggle{display:flex;gap:6px;background:#0a0e16;border:1px solid var(--border);border-radius:10px;padding:5px}
+.toggle .tab.on{background:var(--high-dim);color:var(--high)}
+.toggle .tab.clean.on{background:#34d39922;color:var(--ok)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0}
+.chip{font-family:var(--mono);font-size:12px;font-weight:600;padding:5px 12px;border-radius:100px;cursor:pointer;border:1px solid var(--border2);color:var(--dim);background:transparent;transition:.15s}
+.chip.on{color:#06080c}
+.chip[data-s=all].on{background:var(--accent);border-color:var(--accent)}
+.chip[data-s=critical].on{background:var(--crit);border-color:var(--crit)}
+.chip[data-s=high].on{background:var(--high);border-color:var(--high)}
+.chip[data-s=medium].on{background:var(--med);border-color:var(--med)}
+.chip[data-s=low].on{background:var(--low);border-color:var(--low)}
+.summary{font-family:var(--mono);font-size:13px;color:var(--dim);margin-bottom:20px;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.summary .n{color:var(--text);font-weight:700}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle}
+.findings{display:flex;flex-direction:column;gap:12px;min-height:120px}
+.f{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--border2);border-radius:12px;padding:18px 20px;animation:fade .25s ease}
+.f.critical{border-left-color:var(--crit)}.f.high{border-left-color:var(--high)}.f.medium{border-left-color:var(--med)}.f.low{border-left-color:var(--low)}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.f-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pill{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 9px;border-radius:6px}
+.pill.critical{background:var(--crit-dim);color:var(--crit)}.pill.high{background:var(--high-dim);color:var(--high)}
+.pill.medium{background:var(--med-dim);color:var(--med)}.pill.low{background:var(--low-dim);color:var(--low)}
+.f-title{font-size:16px;font-weight:600}
+.f-who{font-family:var(--mono);font-size:12px;color:var(--faint);margin-left:auto}
+.f-detail{color:var(--dim);font-size:14.5px;margin-top:10px}
+.f-fix{font-size:14px;margin-top:10px;color:#bfeede}
+.f-fix b{color:var(--ok);font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-right:6px}
+.f-meta{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.f-meta .tech{color:var(--accent);opacity:.8}
+.clean-msg{text-align:center;padding:48px 20px;color:var(--ok);font-family:var(--mono);font-size:15px}
+.clean-msg .sm{color:var(--dim);font-size:13px;margin-top:8px}
+
+/* matrix */
+.matrix{overflow-x:auto}
+.mtable{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px;min-width:560px}
+.mtable th,.mtable td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--border)}
+.mtable th{color:var(--faint);font-weight:600;font-size:11.5px;letter-spacing:.5px;text-transform:uppercase}
+.mtable td:first-child{color:var(--text);font-weight:600}
+.mtable .yes{color:var(--accent)}
+.mtable .desc{color:var(--dim);font-family:var(--sans);font-size:13px}
+
+/* clouds */
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:900px){.grid4{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.grid4{grid-template-columns:1fr}}
+.ccard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;text-align:center;transition:.2s}
+.ccard:hover{border-color:var(--accent-mid);background:var(--card2)}
+.ccard .cn{font-family:var(--mono);font-weight:700;font-size:16px;color:var(--accent);margin-bottom:10px}
+.ccard p{color:var(--dim);font-size:13px}
+.ccard code{display:block;font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:12px;word-break:break-all;background:#0a0e16;padding:8px;border-radius:6px;border:1px solid var(--border)}
+
+/* arch */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.acard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px}
+.acard h3{font-size:17px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.acard pre{font-family:var(--mono);font-size:12.5px;color:var(--dim);line-height:1.8;white-space:pre-wrap}
+.acard .k{color:var(--accent)}
+.acard ul{list-style:none;display:flex;flex-direction:column;gap:12px}
+.acard li{color:var(--dim);font-size:14px;padding-left:20px;position:relative}
+.acard li::before{content:"›";position:absolute;left:0;color:var(--accent);font-family:var(--mono)}
+.acard li b{color:var(--text);font-weight:600}
+
+/* install */
+.install-term{background:#0a0e16;border:1px solid var(--border2);border-radius:12px;overflow:hidden;max-width:760px;margin:0 auto}
+.install-term .h{padding:11px 16px;background:#0c1018;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;color:var(--faint)}
+.install-term pre{padding:20px;font-family:var(--mono);font-size:13.5px;line-height:1.9;color:var(--text);overflow-x:auto}
+.install-term .c{color:var(--faint)}
+.install-term .p{color:var(--accent)}
+
+/* footer */
+footer{border-top:1px solid var(--border);padding:44px 0;margin-top:20px}
+.foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px}
+.foot .note{color:var(--faint);font-size:13px;max-width:560px}
+.foot .note b{color:var(--accent)}
+.foot-links{display:flex;gap:20px;font-family:var(--mono);font-size:13px}
+.foot-links a{color:var(--dim)}.foot-links a:hover{color:var(--accent)}
+</style></head>
+<body>
+
+<nav><div class="wrap nav">
+  <a href="#" class="logo">RAQIB<span>.sh</span></a>
+  <ul class="nav-links">
+    <li><a href="#promise">Read only</a></li>
+    <li><a href="#tactics">Tactics</a></li>
+    <li><a href="#explore">Explore a scan</a></li>
+    <li><a href="#clouds">Clouds</a></li>
+    <li><a href="#install">Install</a></li>
+  </ul>
+  <a href="https://github.com/SiteQ8/Raqib" class="nav-gh" target="_blank">GitHub ↗</a>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="badge"><b></b>v0.5.0 · reads your cloud, changes nothing</div>
+  <h1>RAQIB</h1>
+  <p class="sub">Read Only Cloud Exposure Auditor</p>
+  <p class="arabic">راقب · one who watches over</p>
+  <p class="desc">Point Raqib at the cloud you are signed in to. It reads your authorization configuration with read only calls, then reports the moves an intruder would make after a foothold, each with the change that closes it. The defensive mirror of an offensive framework, across AWS, Azure, GCP, and Kubernetes.</p>
+  <div class="hero-actions">
+    <a class="btn btn-p" href="#explore">Explore a scan →</a>
+    <a class="btn btn-s" href="https://github.com/SiteQ8/Raqib" target="_blank">View source</a>
+  </div>
+  <div class="term">
+    <div class="term-bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>raqib.sh</span></div>
+    <div class="term-body"><span class="p">$ ./raqib.sh</span>
+  <span class="d">read only cloud exposure auditor   v0.5.0</span>
+  <span class="d">reads your cloud, reports the exposure, changes nothing</span>
+
+  <span class="b">AWS exposure report</span>
+  <span class="d">16 findings   3 critical   9 high   4 medium   0 low</span>
+
+  <span class="sev-crit">[critical]</span> <span class="b">Administrator by wildcard permission</span>  <span class="d">(user break-glass)</span>
+  <span class="sev-crit">[critical]</span> <span class="b">Role can be assumed by anyone</span>  <span class="d">(role public-assumable)</span>
+  <span class="sev-high">[high]</span>     <span class="b">Can pass a role to a new Lambda function</span>  <span class="d">(user ci-deployer)</span>
+           <span class="fix">fix:</span> <span class="d">Scope iam:PassRole to specific roles, and separate it from create.</span>
+  <span class="sev-med">[medium]</span>   <span class="b">Can export the entire IAM configuration</span>  <span class="d">(user recon-bot)</span></div>
+  </div>
+</div></header>
+
+<section id="promise" class="promise"><div class="wrap">
+  <div class="s-head center">
+    <div class="eyebrow">the line that defines it</div>
+    <h2 class="s-title">It reads. It never acts.</h2>
+    <p class="s-sub">Raqib audits. Where the offensive framework it mirrors performs the escalation, plants the persistence, and pulls the data, Raqib only reads the configuration that would let those happen, and tells you to close it. Nothing it does changes a cloud.</p>
+  </div>
+  <div class="promise-grid">
+    <div class="promise-card"><div class="ico mono">get · list · describe</div><h3>Only read calls</h3><p>Every call Raqib makes lists or describes authorization configuration. It has no code path that writes, and a guard refuses any command that is not one of the read only gather calls.</p></div>
+    <div class="promise-card"><div class="ico mono">no writes</div><h3>Changes nothing</h3><p>Raqib never creates, updates, or deletes a policy, a role, a binding, or anything else. You can run it against production and the account is exactly as it was.</p></div>
+    <div class="promise-card"><div class="ico mono">no data read</div><h3>Never reads your data</h3><p>An exfiltration finding checks whether a principal is allowed to read every secret. It never calls the API that returns the secret. The check is on the grant, not the data.</p></div>
+  </div>
+  <div class="guard mono">The guard, in <b>src/lib/utils.sh</b>, allows only <b>iam get-account-authorization-details</b>, <b>az role assignment / definition list</b>, <b>gcloud projects get-iam-policy</b>, and <b>kubectl get</b> for RBAC. Anything else is refused, so a wrong turn cannot change a cloud.</div>
+</div></section>
+
+<section id="tactics"><div class="wrap">
+  <div class="s-head">
+    <div class="eyebrow">six tactics, read for defense</div>
+    <h2 class="s-title">The path an intruder walks, closed first</h2>
+    <p class="s-sub">An attacker who lands one set of credentials maps the account, turns access into more, plants something to keep it, reaches the next principal, pulls data out, and turns off the logging. Raqib walks those same paths in your account and reports where each one is open.</p>
+  </div>
+  <div class="grid3" id="tactic-cards"></div>
+</div></section>
+
+<div class="divider wrap"></div>
+
+<section id="explore" class="expl"><div class="wrap">
+  <div class="s-head">
+    <div class="eyebrow">see it on a real account</div>
+    <h2 class="s-title">Explore a scan</h2>
+    <p class="s-sub">These are the findings Raqib produces on deliberately built example accounts, the same output the tool prints, rendered here. Switch the cloud, compare an exposed account with a clean one, and filter by severity.</p>
+  </div>
+  <div class="controls">
+    <div class="tabs" id="cloud-tabs">
+      <button class="tab on" data-c="aws">AWS</button>
+      <button class="tab" data-c="azure">Azure</button>
+      <button class="tab" data-c="gcp">GCP</button>
+      <button class="tab" data-c="k8s">Kubernetes</button>
+    </div>
+    <div class="toggle" id="scen-toggle">
+      <button class="tab on" data-scen="vulnerable">Exposed account</button>
+      <button class="tab clean" data-scen="clean">Clean account</button>
+    </div>
+  </div>
+  <div class="chips" id="sev-chips">
+    <button class="chip on" data-s="all">all</button>
+    <button class="chip" data-s="critical">critical</button>
+    <button class="chip" data-s="high">high</button>
+    <button class="chip" data-s="medium">medium</button>
+    <button class="chip" data-s="low">low</button>
+  </div>
+  <div class="summary" id="summary"></div>
+  <div class="findings" id="findings"></div>
+</div></section>
+
+<section id="matrix-sec"><div class="wrap">
+  <div class="s-head">
+    <div class="eyebrow">./raqib.sh defends</div>
+    <h2 class="s-title">What Raqib checks, by cloud and tactic</h2>
+    <p class="s-sub">The checks are a matrix under src/modules, named {tactic}_{cloud}.sh, the same six tactics the offensive framework runs, so the defense maps onto the offense one for one.</p>
+  </div>
+  <div class="matrix"><table class="mtable" id="matrix"></table></div>
+</div></section>
+
+<div class="divider wrap"></div>
+
+<section id="clouds"><div class="wrap">
+  <div class="s-head center">
+    <div class="eyebrow">four clouds, one lookout</div>
+    <h2 class="s-title">Each cloud, read natively</h2>
+    <p class="s-sub">Each cloud has its own authorization model, so Raqib reads each one natively and reports the same six tactics in that cloud's own terms.</p>
+  </div>
+  <div class="grid4">
+    <div class="ccard"><div class="cn">AWS</div><p>IAM policies, inline, attached, and group, with permissions boundaries.</p><code>iam get-account-authorization-details</code></div>
+    <div class="ccard"><div class="cn">Azure</div><p>RBAC role assignments joined to role definitions, across actions and dataActions.</p><code>az role assignment list · role definition list</code></div>
+    <div class="ccard"><div class="cn">GCP</div><p>IAM policy bindings, resolved to members with predefined and custom roles.</p><code>gcloud projects get-iam-policy</code></div>
+    <div class="ccard"><div class="cn">Kubernetes</div><p>Roles and ClusterRoles resolved to subjects through their bindings.</p><code>kubectl get clusterroles,roles,bindings</code></div>
+  </div>
+</div></section>
+
+<section id="arch"><div class="wrap">
+  <div class="s-head">
+    <div class="eyebrow">how it is built</div>
+    <h2 class="s-title">Bash and jq, mirroring the offense</h2>
+  </div>
+  <div class="grid2">
+    <div class="acard"><h3>Directory layout</h3><pre><span class="k">raqib.sh</span>                 the launcher
+<span class="k">src/lib/</span>
+  cloud_detect.sh        detect and gather, read only
+  utils.sh               the read only guard
+  model_<span class="k">{cloud}</span>.jq         one model per cloud
+<span class="k">src/modules/</span>
+  <span class="k">{tactic}_{cloud}</span>.sh      the 24 checks
+src/report.sh            terminal and json output
+<span class="k">raqib/</span>                   zero dependency python engine
+  for offline review, SARIF, and the
+  AWS credential report</pre></div>
+    <div class="acard"><h3>Design principles</h3><ul>
+      <li><b>Read only.</b> Lists and describes, never writes, never reads a secret value.</li>
+      <li><b>Live, no files.</b> Point it at a cloud you are signed in to and it reads the config itself.</li>
+      <li><b>A cloud by tactic matrix.</b> Modules named {tactic}_{cloud} map onto the offensive framework module for module.</li>
+      <li><b>Parity.</b> The bash scanner and the python engine agree, finding for finding, on every sample.</li>
+      <li><b>Every finding carries its fix</b> and the MITRE ATT&CK technique it defends against.</li>
+    </ul></div>
+  </div>
+</div></section>
+
+<section id="install" class="expl"><div class="wrap">
+  <div class="s-head center">
+    <div class="eyebrow">run it</div>
+    <h2 class="s-title">Point it at your cloud</h2>
+    <p class="s-sub">Sign in the way you already do, then run Raqib. It needs jq and the CLI for the cloud you scan. Nothing else.</p>
+  </div>
+  <div class="install-term">
+    <div class="h">Terminal</div>
+    <pre><span class="c"># clone and scan whatever cloud you are signed in to</span>
+git clone https://github.com/SiteQ8/Raqib.git
+cd Raqib
+<span class="p">./raqib.sh</span>
+
+<span class="c"># one named cloud, and a build gate that fails on critical or high</span>
+<span class="p">./raqib.sh</span> --cloud aws
+<span class="p">./raqib.sh</span> scan --strict
+
+<span class="c"># the whole cloud by tactic map, and offline review of a saved export</span>
+<span class="p">./raqib.sh</span> defends
+<span class="p">./raqib.sh</span> scan --offline export.json</pre>
+  </div>
+</div></section>
+
+<footer><div class="wrap foot">
+  <div class="note"><b>Raqib</b> (راقب) reads who can do what, and reports it. A finding says what a permission would allow, not that it was used. A clean report means the account named nothing these rules look for, not that it is secure. Read only, always.</div>
+  <div class="foot-links">
+    <a href="https://github.com/SiteQ8/Raqib" target="_blank">GitHub</a>
+    <a href="https://github.com/SiteQ8/Raqib/releases" target="_blank">Releases</a>
+    <a href="https://github.com/SiteQ8/Raqib#readme" target="_blank">Docs</a>
+  </div>
+</div></footer>
+
+<script>
+const SAMPLES = {"aws":{"vulnerable":[{"severity":"medium","title":"Can export the entire IAM configuration","principal":"recon-bot","kind":"user","detail":"recon-bot can call iam:GetAccountAuthorizationDetails, which returns every user, role, group, and policy in one response, the first thing an intruder pulls to plan a path.","fix":"Limit this action to the principals that audit IAM, and watch for it in the trail.","tactic":"reconnaissance"},{"severity":"high","title":"Can pass a role to a new Lambda function","principal":"ci-deployer","kind":"user","detail":"ci-deployer can pass an IAM role and create a new Lambda function, running with that role permissions.","fix":"Scope iam:PassRole to specific roles, and separate it from the create permission.","tactic":"privilege escalation"},{"severity":"high","title":"Can rewrite an attached policy","principal":"policy-editor","kind":"user","detail":"policy-editor holds iam:createpolicyversion, an escalation path.","fix":"Remove or scope these actions so the principal cannot grant itself more.","tactic":"privilege escalation"},{"severity":"high","title":"Can roll a policy back to a more permissive version","principal":"policy-editor","kind":"user","detail":"policy-editor holds iam:setdefaultpolicyversion, an escalation path.","fix":"Remove or scope these actions so the principal cannot grant itself more.","tactic":"privilege escalation"},{"severity":"high","title":"Can pass a role to a new EC2 instance","principal":"policy-editor","kind":"user","detail":"policy-editor can pass an IAM role and create a new EC2 instance, running with that role permissions.","fix":"Scope iam:PassRole to specific roles, and separate it from the create permission.","tactic":"privilege escalation"},{"severity":"critical","title":"Administrator by wildcard permission","principal":"break-glass","kind":"user","detail":"break-glass is allowed every action on every resource, which is full control of the account.","fix":"Replace the wildcard with the specific actions this principal needs.","tactic":"privilege escalation"},{"severity":"high","title":"Full control of iam through a service wildcard","principal":"iam-admin","kind":"user","detail":"iam-admin is allowed iam:* on every resource, which is control of that whole service.","fix":"Replace iam:* with the specific iam actions needed.","tactic":"privilege escalation"},{"severity":"medium","title":"Can reset another user console password","principal":"support-agent","kind":"user","detail":"support-agent holds iam:updateloginprofile, an escalation path.","fix":"Remove or scope these actions so the principal cannot grant itself more.","tactic":"privilege escalation"},{"severity":"critical","title":"Administrator by attached policy","principal":"billing-admin","kind":"user","detail":"billing-admin has the AdministratorAccess policy attached, which is full control of the account.","fix":"Detach AdministratorAccess and grant a role scoped to what this principal does.","tactic":"privilege escalation"},{"severity":"high","title":"Administrator by wildcard permission","principal":"bounded-operator","kind":"user","detail":"bounded-operator is allowed every action, though a permissions boundary caps it. If the boundary is ever relaxed this becomes full control.","fix":"Replace the wildcard with the specific actions this principal needs, and do not rely on the boundary alone.","tactic":"privilege escalation"},{"severity":"medium","title":"Can create IAM users","principal":"identity-provisioner","kind":"user","detail":"identity-provisioner can create IAM users. Paired with a way to grant access it becomes a back door.","fix":"Limit iam:CreateUser to the principals that provision identities.","tactic":"persistence"},{"severity":"critical","title":"Role can be assumed by anyone","principal":"public-assumable","kind":"role","detail":"public-assumable has a trust policy that allows any principal to assume it, so anyone can take this role.","fix":"Restrict the trust policy to the specific accounts, roles, or services that should assume this role.","tactic":"lateral movement"},{"severity":"medium","title":"Role trusts an external account","principal":"partner-access","kind":"role","detail":"partner-access trusts a principal in another account (999988887777). If that account is compromised, this role is reachable.","fix":"Confirm the external account is meant to assume this role, and add a condition such as an external id.","tactic":"lateral movement"},{"severity":"high","title":"Can read or move data broadly","principal":"secrets-reader","kind":"user","detail":"secrets-reader can read every secret in Secrets Manager, and read every SSM parameter. An intruder holding this principal would use it to pull data out.","fix":"Scope these actions to the specific secrets, buckets, parameters, and tables the principal needs.","tactic":"exfiltration"},{"severity":"high","title":"Can read or move data broadly","principal":"public-assumable","kind":"role","detail":"public-assumable can read objects in any bucket. An intruder holding this principal would use it to pull data out.","fix":"Scope these actions to the specific secrets, buckets, parameters, and tables the principal needs.","tactic":"exfiltration"},{"severity":"high","title":"Can weaken the audit trail","principal":"log-manager","kind":"user","detail":"log-manager can stop or delete a CloudTrail trail, delete or stop AWS Config, and disable GuardDuty, which is how an intruder erases the record of what they did.","fix":"Remove these permissions, and protect logging with a service control policy so it cannot be turned off in one account.","tactic":"defense evasion"}],"clean":[]},"azure":{"vulnerable":[{"severity":"low","title":"Reader across the management group","principal":"read-only","kind":"User","detail":"read-only can read every resource under a management group, a full map of the estate.","fix":"Grant Reader at the narrowest scope a task needs.","tactic":"reconnaissance"},{"severity":"critical","title":"Owner or a wildcard role","principal":"ops-lead","kind":"User","detail":"ops-lead holds Owner or a role that allows every action, full control of everything in scope.","fix":"Replace Owner with a role scoped to what this principal needs.","tactic":"privilege escalation"},{"severity":"high","title":"Can grant itself any role","principal":"ci-sp","kind":"ServicePrincipal","detail":"ci-sp can write role assignments, so it can assign itself Owner.","fix":"Remove Microsoft.Authorization/roleAssignments/write or limit it to a narrow scope under review.","tactic":"privilege escalation"},{"severity":"medium","title":"Can plant a standing role assignment","principal":"ci-sp","kind":"ServicePrincipal","detail":"ci-sp can create role assignments, granting a principal it controls lasting access.","fix":"Alert on new role assignments and keep this permission narrow.","tactic":"persistence"},{"severity":"high","title":"Can read data broadly","principal":"storage-user","kind":"User","detail":"storage-user can list storage account keys, which opens every blob and file in the account. An intruder holding this principal would pull data out.","fix":"Scope storage and Key Vault access to the specific accounts and vaults the principal needs.","tactic":"exfiltration"},{"severity":"high","title":"Can weaken the audit trail","principal":"log-eraser","kind":"User","detail":"log-eraser can delete diagnostic settings, and delete Log Analytics workspaces. That is how an intruder reduces the record of what they did.","fix":"Remove these delete permissions, and protect logging with an Azure policy.","tactic":"defense evasion"}],"clean":[]},"gcp":{"vulnerable":[{"severity":"low","title":"Viewer over the project","principal":"analyst@example.com","kind":"user","detail":"analyst@example.com can read every resource in the project, a full map of what is there.","fix":"Grant read access at the narrowest scope rather than project wide Viewer.","tactic":"reconnaissance"},{"severity":"critical","title":"Owner of the project","principal":"founder@example.com","kind":"user","detail":"founder@example.com holds roles/owner, full control of the project including its IAM policy.","fix":"Replace Owner with roles scoped to what this member needs.","tactic":"privilege escalation"},{"severity":"high","title":"Can rewrite the project IAM policy","principal":"platform@example.com","kind":"user","detail":"platform@example.com can set the project IAM policy, so it can grant itself Owner.","fix":"Remove setIamPolicy unless this member administers IAM.","tactic":"privilege escalation"},{"severity":"high","title":"Can impersonate service accounts","principal":"deployer@example.com","kind":"user","detail":"deployer@example.com can mint access tokens for service accounts, borrowing a more powerful identity.","fix":"Remove roles/iam.serviceAccountTokenCreator unless impersonation of a specific account is required.","tactic":"privilege escalation"},{"severity":"high","title":"Can create service account keys","principal":"ci@project.iam.gserviceaccount.com","kind":"service account","detail":"ci@project.iam.gserviceaccount.com can create keys for service accounts, a long lived credential an intruder can keep using.","fix":"Remove roles/iam.serviceAccountKeyAdmin, and prefer short lived credentials.","tactic":"persistence"},{"severity":"high","title":"Can read data broadly","principal":"app-dev@example.com","kind":"user","detail":"app-dev@example.com can read secrets in Secret Manager, across the project rather than a named resource.","fix":"Grant data access on specific buckets, secrets, and datasets, not at the project level.","tactic":"exfiltration"},{"severity":"high","title":"Can read data broadly","principal":"allUsers","kind":"public","detail":"allUsers can read objects in Cloud Storage, across the project rather than a named resource.","fix":"Grant data access on specific buckets, secrets, and datasets, not at the project level.","tactic":"exfiltration"},{"severity":"high","title":"Can weaken the audit trail","principal":"ops@example.com","kind":"user","detail":"ops@example.com can delete log sinks or logs, how an intruder stops or erases the record of what they did.","fix":"Remove roles/logging.admin from principals that do not run logging, and route audit logs to a sink another team controls.","tactic":"defense evasion"}],"clean":[]},"k8s":{"vulnerable":[{"severity":"low","title":"Can read across the whole cluster","principal":"readers","kind":"Group","detail":"Group readers can list or get every resource in every namespace, a full map of the cluster.","fix":"Scope read access to the namespaces and resource types a subject needs.","tactic":"reconnaissance"},{"severity":"critical","title":"Holds cluster-admin","principal":"break-glass","kind":"User","detail":"User break-glass is bound to a role with every verb on every resource across the cluster, full control.","fix":"Bind cluster-admin to as few subjects as possible.","tactic":"privilege escalation"},{"severity":"high","title":"Can escalate its own permissions","principal":"rbac-editor-user","kind":"User","detail":"User rbac-editor-user holds the escalate verb on roles, letting it write a role granting more than it has.","fix":"Remove the escalate verb from this subject roles.","tactic":"privilege escalation"},{"severity":"high","title":"Can bind itself to any role","principal":"rbac-editor-user","kind":"User","detail":"User rbac-editor-user holds the bind verb, letting it bind itself to a more powerful role.","fix":"Remove the bind verb from this subject roles.","tactic":"privilege escalation"},{"severity":"high","title":"Can impersonate other subjects","principal":"support-agent","kind":"User","detail":"User support-agent can impersonate users, groups, or service accounts, acting with their access.","fix":"Remove the impersonate verb unless acting on behalf of others is required.","tactic":"privilege escalation"},{"severity":"high","title":"Can create pods cluster wide","principal":"deployer","kind":"User","detail":"User deployer can create pods in any namespace, which can mount a host path or a powerful service account and reach the node.","fix":"Scope pod creation to the namespaces a workload needs, and enforce a pod security standard.","tactic":"privilege escalation"},{"severity":"high","title":"Can install admission webhooks","principal":"operator","kind":"ServiceAccount","detail":"ServiceAccount operator can create admission webhook configurations, which run on every future API request, a durable foothold.","fix":"Restrict who can create webhook configurations to cluster operators.","tactic":"persistence"},{"severity":"high","title":"Can read secrets across the cluster","principal":"audit-sa","kind":"ServiceAccount","detail":"ServiceAccount audit-sa can read secrets in every namespace. Secrets hold service account tokens, a route into other namespaces.","fix":"Scope secret access to the namespace a workload runs in.","tactic":"lateral movement"},{"severity":"high","title":"Can read secrets across the cluster","principal":"readers","kind":"Group","detail":"Group readers can read secrets in every namespace. Secrets hold service account tokens, a route into other namespaces.","fix":"Scope secret access to the namespace a workload runs in.","tactic":"lateral movement"},{"severity":"medium","title":"Can read cluster data broadly","principal":"readers","kind":"Group","detail":"Group readers can read every config map across the cluster.","fix":"Scope config map access to the namespace a workload needs.","tactic":"exfiltration"},{"severity":"medium","title":"Can read cluster data broadly","principal":"config-viewer","kind":"User","detail":"User config-viewer can read every config map across the cluster.","fix":"Scope config map access to the namespace a workload needs.","tactic":"exfiltration"},{"severity":"medium","title":"Can weaken what records the cluster","principal":"operator","kind":"ServiceAccount","detail":"ServiceAccount operator can delete admission webhook configurations that enforce policy.","fix":"Remove delete on events and webhook configurations from workloads, and ship audit logs off the cluster.","tactic":"defense evasion"},{"severity":"medium","title":"Can weaken what records the cluster","principal":"janitor","kind":"ServiceAccount","detail":"ServiceAccount janitor can delete events, the cluster own record of what happened.","fix":"Remove delete on events and webhook configurations from workloads, and ship audit logs off the cluster.","tactic":"defense evasion"}],"clean":[]}};
+const TECH = {
+  "reconnaissance":"T1580 Cloud Infrastructure Discovery",
+  "privilege escalation":"T1098 Account Manipulation",
+  "persistence":"T1098 Account Manipulation",
+  "lateral movement":"T1199 Trusted Relationship",
+  "exfiltration":"T1530 Data from Cloud Storage",
+  "defense evasion":"T1562.008 Disable or Modify Cloud Logs"
+};
+const TACTICS = [
+  ["reconnaissance","Reconnaissance","The mapping an intruder does first: the call that dumps the whole IAM configuration, Reader across a management group, project Viewer, a cluster wide list."],
+  ["privilege escalation","Privilege escalation","Administrator and the known escalation paths, Owner and writing role assignments, setIamPolicy and impersonation, cluster-admin and the escalate, bind, and impersonate verbs."],
+  ["persistence","Persistence","Creating an identity and granting it access: a back door user, service account keys, cluster role bindings, and admission webhooks that run on every future request."],
+  ["lateral movement","Lateral movement","Trust that lets the wrong caller in, a role granted to everyone, a service principal with broad reach, reading secrets that hold service account tokens."],
+  ["exfiltration","Exfiltration","The permission to read secrets, objects, parameters, and keys broadly, to list storage keys, and to read config maps and secrets across a cluster."],
+  ["defense evasion","Anti forensics","The ability to stop or delete the account's own record keeping, the CloudTrail trail, the diagnostic settings, the log sinks, the cluster events, so an intruder can erase the trace."]
+];
+const CLOUD_TACTIC = {
+  recon:["aws","azure","gcp","k8s"],privesc:["aws","azure","gcp","k8s"],persist:["aws","azure","gcp","k8s"],
+  lateral:["aws","azure","gcp","k8s"],exfil:["aws","azure","gcp","k8s"],cleanup:["aws","azure","gcp","k8s"]
+};
+const TACTIC_ROWS = [
+  ["Reconnaissance","the mapping an intruder does first"],
+  ["Privilege escalation","turning access into more"],
+  ["Persistence","planting something to keep the access"],
+  ["Lateral movement","reaching the next principal"],
+  ["Exfiltration","the permission to pull data out"],
+  ["Anti forensics","weakening the record that would show it"]
+];
+
+let state = {cloud:"aws", scen:"vulnerable", sev:"all"};
+
+function qsa(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));}
+function el(tag, cls, html){const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+
+function renderTactics(){
+  const box=document.getElementById("tactic-cards");
+  box.innerHTML="";
+  TACTICS.forEach(([key,name,desc])=>{
+    const c=el("div","tcard");
+    c.innerHTML=`<div class="ttag mono">${key.replace(" ","_")}_{cloud}</div><h3>${name}</h3><p>${desc}</p><div class="tech mono">${TECH[key]}</div>`;
+    box.appendChild(c);
+  });
+}
+
+function renderMatrix(){
+  const t=document.getElementById("matrix");
+  const keys=["recon","privesc","persist","lateral","exfil","cleanup"];
+  let head="<tr><th>Tactic</th><th>What it looks for</th><th>AWS</th><th>Azure</th><th>GCP</th><th>K8s</th></tr>";
+  let rows="";
+  TACTIC_ROWS.forEach((r,i)=>{
+    const k=keys[i]; const cov=CLOUD_TACTIC[k];
+    const cell=c=>cov.includes(c)?'<span class="yes">●</span>':'<span style="color:var(--faint)">○</span>';
+    rows+=`<tr><td>${r[0]}</td><td class="desc">${r[1]}</td><td>${cell("aws")}</td><td>${cell("azure")}</td><td>${cell("gcp")}</td><td>${cell("k8s")}</td></tr>`;
+  });
+  t.innerHTML=head+rows;
+}
+
+function renderFindings(){
+  const list=document.getElementById("findings");
+  const sum=document.getElementById("summary");
+  let items=(SAMPLES[state.cloud] && SAMPLES[state.cloud][state.scen])||[];
+  const order={critical:0,high:1,medium:2,low:3};
+  items=items.slice().sort((a,b)=>order[a.severity]-order[b.severity]);
+  const counts={critical:0,high:0,medium:0,low:0};
+  items.forEach(f=>counts[f.severity]++);
+
+  if(items.length===0){
+    sum.innerHTML="";
+    list.innerHTML=`<div class="clean-msg mono">No findings. The account named nothing these rules look for.<div class="sm">That is not the same as secure. Raqib reads the paths it knows about.</div></div>`;
+    return;
+  }
+  const cols={critical:"var(--crit)",high:"var(--high)",medium:"var(--med)",low:"var(--low)"};
+  sum.innerHTML=`<span><span class="n">${items.length}</span> findings</span>`+
+    ["critical","high","medium","low"].map(s=>`<span><span class="dot" style="background:${cols[s]}"></span><span class="n">${counts[s]}</span> ${s}</span>`).join("");
+
+  const shown=items.filter(f=>state.sev==="all"||f.severity===state.sev);
+  list.innerHTML="";
+  if(shown.length===0){list.innerHTML=`<div class="clean-msg mono" style="color:var(--dim)">No ${state.sev} findings in this account.</div>`;return;}
+  shown.forEach(f=>{
+    const c=el("div","f "+f.severity);
+    c.innerHTML=`<div class="f-top">
+        <span class="pill ${f.severity}">${f.severity}</span>
+        <span class="f-title">${f.title}</span>
+        <span class="f-who mono">${f.kind} · ${f.principal}</span>
+      </div>
+      <div class="f-detail">${f.detail}</div>
+      <div class="f-fix"><b>fix</b>${f.fix}</div>
+      <div class="f-meta"><span>${f.tactic}</span> &nbsp;·&nbsp; <span class="tech">${TECH[f.tactic]||""}</span></div>`;
+    list.appendChild(c);
+  });
+}
+
+function bind(){
+  qsa("#cloud-tabs .tab").forEach(b=>b.onclick=()=>{
+    qsa("#cloud-tabs .tab").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); state.cloud=b.dataset.c; renderFindings();
+  });
+  qsa("#scen-toggle .tab").forEach(b=>b.onclick=()=>{
+    qsa("#scen-toggle .tab").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); state.scen=b.dataset.scen; renderFindings();
+  });
+  qsa("#sev-chips .chip").forEach(b=>b.onclick=()=>{
+    qsa("#sev-chips .chip").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); state.sev=b.dataset.s; renderFindings();
+  });
+}
+
+renderTactics(); renderMatrix(); bind(); renderFindings();
+</script>
+</body></html>
