@@ -1,0 +1,76 @@
+{
+  "UserDetailList": [
+    {
+      "UserName": "report-reader",
+      "UserId": "AIDACLEAN0001",
+      "Arn": "arn:aws:iam::111122223333:user/report-reader",
+      "Path": "/",
+      "UserPolicyList": [
+        {
+          "PolicyName": "read-one-bucket",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              { "Effect": "Allow", "Action": ["s3:GetObject", "s3:ListBucket"], "Resource": ["arn:aws:s3:::reports-bucket", "arn:aws:s3:::reports-bucket/*"] }
+            ]
+          }
+        }
+      ],
+      "GroupList": [],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    }
+  ],
+  "GroupDetailList": [],
+  "RoleDetailList": [
+    {
+      "RoleName": "lambda-writer",
+      "RoleId": "AROACLEAN0001",
+      "Arn": "arn:aws:iam::111122223333:role/lambda-writer",
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          { "Effect": "Allow", "Principal": { "Service": "lambda.amazonaws.com" }, "Action": "sts:AssumeRole" }
+        ]
+      },
+      "RolePolicyList": [
+        {
+          "PolicyName": "write-table",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              { "Effect": "Allow", "Action": ["dynamodb:PutItem", "dynamodb:GetItem"], "Resource": "arn:aws:dynamodb:us-east-1:111122223333:table/orders" }
+            ]
+          }
+        }
+      ],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    },
+    {
+      "RoleName": "same-account-app",
+      "RoleId": "AROACLEAN0002",
+      "Arn": "arn:aws:iam::111122223333:role/same-account-app",
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          { "Effect": "Allow", "Principal": { "AWS": "arn:aws:iam::111122223333:role/lambda-writer" }, "Action": "sts:AssumeRole" }
+        ]
+      },
+      "RolePolicyList": [
+        {
+          "PolicyName": "metrics",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              { "Effect": "Allow", "Action": "cloudwatch:PutMetricData", "Resource": "*" }
+            ]
+          }
+        }
+      ],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    }
+  ],
+  "Policies": []
+}

@@ -1,0 +1,216 @@
+{
+  "UserDetailList": [
+    {
+      "UserName": "ci-deployer",
+      "UserId": "AIDAEXAMPLE0001",
+      "Arn": "arn:aws:iam::111122223333:user/ci-deployer",
+      "Path": "/",
+      "UserPolicyList": [
+        {
+          "PolicyName": "deploy-inline",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": ["iam:PassRole", "lambda:CreateFunction", "lambda:InvokeFunction"],
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ],
+      "GroupList": [],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    },
+    {
+      "UserName": "policy-editor",
+      "UserId": "AIDAEXAMPLE0002",
+      "Arn": "arn:aws:iam::111122223333:user/policy-editor",
+      "Path": "/",
+      "UserPolicyList": [
+        {
+          "PolicyName": "manage-policies",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": ["iam:CreatePolicyVersion", "iam:SetDefaultPolicyVersion"],
+                "Resource": "*"
+              }
+            ]
+          }
+        }
+      ],
+      "GroupList": ["developers"],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    },
+    {
+      "UserName": "break-glass",
+      "UserId": "AIDAEXAMPLE0003",
+      "Arn": "arn:aws:iam::111122223333:user/break-glass",
+      "Path": "/",
+      "UserPolicyList": [
+        {
+          "PolicyName": "everything",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              { "Effect": "Allow", "Action": "*", "Resource": "*" }
+            ]
+          }
+        }
+      ],
+      "GroupList": [],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    },
+    {
+      "UserName": "iam-admin",
+      "UserId": "AIDAEXAMPLE0004",
+      "Arn": "arn:aws:iam::111122223333:user/iam-admin",
+      "Path": "/",
+      "UserPolicyList": [
+        {
+          "PolicyName": "iam-full",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              { "Effect": "Allow", "Action": "iam:*", "Resource": "*" }
+            ]
+          }
+        }
+      ],
+      "GroupList": [],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    },
+    {
+      "UserName": "support-agent",
+      "UserId": "AIDAEXAMPLE0005",
+      "Arn": "arn:aws:iam::111122223333:user/support-agent",
+      "Path": "/",
+      "UserPolicyList": [
+        {
+          "PolicyName": "reset-passwords",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              { "Effect": "Allow", "Action": "iam:UpdateLoginProfile", "Resource": "arn:aws:iam::111122223333:user/support-agent" }
+            ]
+          }
+        }
+      ],
+      "GroupList": [],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    },
+    {
+      "UserName": "billing-admin",
+      "UserId": "AIDAEXAMPLE0006",
+      "Arn": "arn:aws:iam::111122223333:user/billing-admin",
+      "Path": "/",
+      "UserPolicyList": [],
+      "GroupList": [],
+      "AttachedManagedPolicies": [
+        { "PolicyName": "AdministratorAccess", "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess" }
+      ],
+      "Tags": []
+    }
+  ],
+  "GroupDetailList": [
+    {
+      "GroupName": "developers",
+      "GroupId": "AGPAEXAMPLE0001",
+      "Arn": "arn:aws:iam::111122223333:group/developers",
+      "GroupPolicyList": [],
+      "AttachedManagedPolicies": [
+        { "PolicyName": "ec2-run", "PolicyArn": "arn:aws:iam::111122223333:policy/ec2-run" }
+      ]
+    }
+  ],
+  "RoleDetailList": [
+    {
+      "RoleName": "public-assumable",
+      "RoleId": "AROAEXAMPLE0001",
+      "Arn": "arn:aws:iam::111122223333:role/public-assumable",
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          { "Effect": "Allow", "Principal": { "AWS": "*" }, "Action": "sts:AssumeRole" }
+        ]
+      },
+      "RolePolicyList": [
+        {
+          "PolicyName": "reader",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [ { "Effect": "Allow", "Action": "s3:GetObject", "Resource": "*" } ]
+          }
+        }
+      ],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    },
+    {
+      "RoleName": "partner-access",
+      "RoleId": "AROAEXAMPLE0002",
+      "Arn": "arn:aws:iam::111122223333:role/partner-access",
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          { "Effect": "Allow", "Principal": { "AWS": "arn:aws:iam::999988887777:root" }, "Action": "sts:AssumeRole" }
+        ]
+      },
+      "RolePolicyList": [],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    },
+    {
+      "RoleName": "app-runtime",
+      "RoleId": "AROAEXAMPLE0003",
+      "Arn": "arn:aws:iam::111122223333:role/app-runtime",
+      "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          { "Effect": "Allow", "Principal": { "Service": "lambda.amazonaws.com" }, "Action": "sts:AssumeRole" }
+        ]
+      },
+      "RolePolicyList": [
+        {
+          "PolicyName": "app",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [ { "Effect": "Allow", "Action": ["dynamodb:GetItem", "dynamodb:PutItem"], "Resource": "*" } ]
+          }
+        }
+      ],
+      "AttachedManagedPolicies": [],
+      "Tags": []
+    }
+  ],
+  "Policies": [
+    {
+      "PolicyName": "ec2-run",
+      "Arn": "arn:aws:iam::111122223333:policy/ec2-run",
+      "PolicyId": "ANPAEXAMPLE0001",
+      "DefaultVersionId": "v1",
+      "AttachmentCount": 1,
+      "PolicyVersionList": [
+        {
+          "VersionId": "v1",
+          "IsDefaultVersion": true,
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              { "Effect": "Allow", "Action": ["ec2:RunInstances", "iam:PassRole"], "Resource": "*" }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
