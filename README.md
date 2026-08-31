@@ -64,13 +64,13 @@ Raqib detects the cloud on its own. Pass `--cloud` to name it. Azure, GCP, and K
 The checks are a cloud by tactic matrix under `src/modules`, named `{tactic}_{cloud}.sh`, the same six tactics the offensive framework runs, so the defense maps onto the offense one for one. Run `./raqib.sh defends` to see the whole map.
 
 - Reconnaissance: the mapping an attacker does first, the call that dumps the whole IAM configuration in AWS, Reader across a management group in Azure, project Viewer in GCP, cluster wide list in Kubernetes.
-- Privilege escalation: the known IAM escalation paths and administrator in AWS, Owner and writing role assignments in Azure, Owner and setIamPolicy and service account impersonation in GCP, cluster-admin and the escalate, bind, and impersonate verbs in Kubernetes.
+- Privilege escalation: the known IAM escalation paths and administrator in AWS, Owner and writing role assignments in Azure, and in GCP Owner, setIamPolicy, service account impersonation and signing, acting as a service account to deploy and run as it on Cloud Functions, Compute, or Cloud Run, rewriting a custom role granted to the member, and running as the Cloud Build or Deployment Manager service account, cluster-admin and the escalate, bind, and impersonate verbs in Kubernetes.
 - Persistence: creating an identity and granting it access, creating service account keys, creating cluster role bindings and admission webhooks.
 - Lateral movement: trust that lets the wrong caller in, a role granted to everyone, a service principal with broad reach, reading secrets that hold service account tokens.
 - Exfiltration: the permission to read secrets, objects, parameters, and keys broadly, listing storage keys, reading config maps and secrets across a cluster.
 - Anti forensics: the ability to stop or delete the account's own record keeping, in each cloud's logging.
 
-Every finding carries the MITRE ATT&CK technique it defends against. AWS is the deepest today, with permissions boundary awareness across the escalation paths; the other three cover the primary paths and have room to grow. Exfiltration reads the permission to move data. A resource left open to the public through a resource policy is separate, and for AWS `--exposure` now reads that too.
+Every finding carries the MITRE ATT&CK technique it defends against. AWS is the deepest across all six tactics, with permissions boundary awareness; GCP privilege escalation now covers the documented escalation paths in depth; Azure and Kubernetes cover the primary paths and have room to grow. Exfiltration reads the permission to move data. A resource left open to the public through a resource policy is separate, and for AWS `--exposure` now reads that too.
 
 ## Reviewing a saved export
 

@@ -44,6 +44,31 @@ class TestGcpFindings(unittest.TestCase):
         findings, _, _ = audit(load("vulnerable.json"))
         self.assertTrue(any("granted to everyone" in f["title"] and f["severity"] == "critical" for f in findings))
 
+    def test_actas_deploy_is_high(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("deploy a Cloud Function as a service account" in f["title"] and f["severity"] == "high" for f in findings))
+
+    def test_generic_actas_is_medium_fallback(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any(f["title"] == "Can act as service accounts" and f["severity"] == "medium" for f in findings))
+
+    def test_custom_role_rewrite_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("rewrite a custom role" in f["title"] and f["severity"] == "high" for f in findings))
+
+    def test_cloud_build_service_account_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("Cloud Build service account" in f["title"] and f["severity"] == "high" for f in findings))
+
+    def test_deployment_manager_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("Google APIs service account" in f["title"] and f["severity"] == "high" for f in findings))
+
+    def test_impersonation_covers_signing(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any(f["title"] == "Can impersonate service accounts"
+                            and f["principal"]["name"] == "token-signer@example.com" for f in findings))
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)

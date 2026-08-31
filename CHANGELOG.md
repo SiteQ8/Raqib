@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0
+
+Deeper GCP privilege escalation. GCP privesc now reads the documented escalation paths, not just Owner and impersonation, bringing it closer to the AWS depth.
+
+- Acting as a service account to deploy a resource that then runs as it, the GCP form of passing a role, across Cloud Functions, Compute Engine, and Cloud Run, reported per target, with the generic actAs finding kept as the fallback when no deploy permission is paired with it
+- Rewriting a custom role that is granted to the member, so it can add permissions to itself
+- Running as a powerful default service account: starting a Cloud Build build runs as the Cloud Build service account, and creating a Deployment Manager deployment runs as the Google APIs service account, both Editor on the project by default
+- Impersonation now also catches signing as a service account and minting OpenID tokens, not only access tokens
+- New sample principals and six tests for the added paths; the bash scanner and the Python engine still produce the same findings, as the parity test asserts. 109 tests
+
+
 ## 0.7.0
 
 Raqib now reads resource policies, the exposure the IAM export cannot show. An IAM grant is who is allowed to do what; a resource policy is a bucket or a key left open to the world regardless of any identity. For AWS, Raqib now reads both.

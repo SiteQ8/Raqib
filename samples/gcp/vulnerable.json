@@ -4,9 +4,19 @@
     {"role": "roles/iam.securityAdmin", "members": ["user:platform@example.com"]},
     {"role": "roles/iam.serviceAccountTokenCreator", "members": ["user:deployer@example.com"]},
     {"role": "roles/iam.serviceAccountKeyAdmin", "members": ["serviceAccount:ci@project.iam.gserviceaccount.com"]},
+    {"role": "roles/iam.roleAdmin", "members": ["user:role-admin@example.com"]},
+    {"role": "roles/iam.serviceAccountUser", "members": ["serviceAccount:sa-user@project.iam.gserviceaccount.com"]},
+    {"role": "roles/cloudbuild.builds.editor", "members": ["user:cloud-builder@example.com"]},
+    {"role": "roles/deploymentmanager.editor", "members": ["user:dm-deployer@example.com"]},
+    {"role": "projects/project/roles/functionDeployer", "members": ["serviceAccount:fn-deploy@project.iam.gserviceaccount.com"]},
+    {"role": "projects/project/roles/tokenSigner", "members": ["user:token-signer@example.com"]},
     {"role": "roles/secretmanager.secretAccessor", "members": ["user:app-dev@example.com"]},
     {"role": "roles/logging.admin", "members": ["user:ops@example.com"]},
     {"role": "roles/viewer", "members": ["user:analyst@example.com"]},
     {"role": "roles/storage.objectViewer", "members": ["allUsers"]}
+  ],
+  "customRoles": [
+    {"name": "projects/project/roles/functionDeployer", "includedPermissions": ["iam.serviceAccounts.actAs", "cloudfunctions.functions.create"]},
+    {"name": "projects/project/roles/tokenSigner", "includedPermissions": ["iam.serviceAccounts.signBlob"]}
   ]
 }
