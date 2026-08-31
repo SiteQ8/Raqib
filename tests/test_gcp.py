@@ -85,6 +85,14 @@ class TestGcpFindings(unittest.TestCase):
         findings, _, _ = audit(load("vulnerable.json"))
         self.assertTrue(any("group holds a powerful role" in f["title"] and f["severity"] == "medium" for f in findings))
 
+    def test_hmac_keys_exfil_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("storage HMAC keys" in f["detail"] and f["tactic"] == "exfiltration" for f in findings))
+
+    def test_cloudsql_export_exfil_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("export a Cloud SQL database" in f["detail"] and f["tactic"] == "exfiltration" for f in findings))
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)

@@ -77,6 +77,10 @@ class TestK8sFindings(unittest.TestCase):
         findings, _, _ = audit(load("vulnerable.json"))
         self.assertTrue(any("port forward to pods" in f["title"] and f["severity"] == "medium" for f in findings))
 
+    def test_pod_logs_exfil_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("read pod logs" in f["detail"] and f["tactic"] == "exfiltration" for f in findings))
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)

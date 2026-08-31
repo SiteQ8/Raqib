@@ -73,7 +73,7 @@ The checks are a cloud by tactic matrix under `src/modules`, named `{tactic}_{cl
 - Exfiltration: the permission to read secrets, objects, parameters, and keys broadly, listing storage keys, reading config maps and secrets across a cluster.
 - Anti forensics: the ability to stop or delete the account's own record keeping, in each cloud's logging.
 
-Every finding carries the MITRE ATT&CK technique it defends against. AWS is the deepest across all six tactics, with permissions boundary awareness; GCP privilege escalation now covers the documented escalation paths in depth; Azure and Kubernetes cover the primary paths and have room to grow. Exfiltration reads the permission to move data. A resource left open to the public through a resource policy is separate, and for AWS `--exposure` reads that across S3, SQS, SNS, Lambda, Secrets Manager, and KMS.
+Every finding carries the MITRE ATT&CK technique it defends against. All four clouds now cover the six tactics in depth, from privilege escalation through exfiltration; AWS keeps a little more, including permissions boundary awareness on the escalation paths. Exfiltration reads the permission to move data. A resource left open to the public through a resource policy is separate, and for AWS `--exposure` reads that across S3, SQS, SNS, Lambda, Secrets Manager, and KMS.
 
 ## Reviewing a saved export
 

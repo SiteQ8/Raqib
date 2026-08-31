@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.0
+
+Deeper exfiltration coverage on Azure, GCP, and Kubernetes. With this, all four clouds cover the six tactics in depth, from privilege escalation through exfiltration.
+
+- Azure: minting a SAS token that shares a storage account out, exporting a disk or snapshot as a downloadable image, and reading Cosmos DB keys, alongside listing storage keys and reading Key Vault secrets
+- GCP: creating storage HMAC keys, interoperable credentials that read Cloud Storage from anywhere outside the project audit, and exporting a Cloud SQL database to a bucket, alongside reading Cloud Storage, Secret Manager, and BigQuery
+- Kubernetes: reading pod logs, which leak secrets and tokens, alongside config maps and secrets. The bash and Python engines are now aligned here: both weigh secrets, config maps, and logs and leave a secret only subject to the lateral movement check, so there is no duplicate finding
+- New sample principals and four tests. 137 tests, the two engines in lockstep
+
+
 ## 0.11.0
 
 Deeper lateral movement coverage on Azure, GCP, and Kubernetes, and a fix to the Azure model.

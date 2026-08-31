@@ -139,6 +139,36 @@
         "roleName": "Reader",
         "scope": "/subscriptions/sub-2/resourceGroups/b"
       }
+    },
+    {
+      "properties": {
+        "principalId": "eeee-sas",
+        "principalType": "User",
+        "principalName": "sas-minter",
+        "roleDefinitionId": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/sas-role",
+        "roleName": "SAS Minter",
+        "scope": "/subscriptions/sub-1/resourceGroups/data"
+      }
+    },
+    {
+      "properties": {
+        "principalId": "ffff-disk",
+        "principalType": "User",
+        "principalName": "disk-exporter",
+        "roleDefinitionId": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/disk-role",
+        "roleName": "Disk Exporter",
+        "scope": "/subscriptions/sub-1/resourceGroups/compute"
+      }
+    },
+    {
+      "properties": {
+        "principalId": "gggg-cosmos",
+        "principalType": "ServicePrincipal",
+        "principalName": "cosmos-reader",
+        "roleDefinitionId": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/cosmos-role",
+        "roleName": "Cosmos Key Reader",
+        "scope": "/subscriptions/sub-1/resourceGroups/data"
+      }
     }
   ],
   "roleDefinitions": [
@@ -300,6 +330,56 @@
           {
             "actions": [
               "Microsoft.ManagedIdentity/userAssignedIdentities/write"
+            ],
+            "notActions": [],
+            "dataActions": [],
+            "notDataActions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/sas-role",
+      "properties": {
+        "roleName": "SAS Minter",
+        "permissions": [
+          {
+            "actions": [
+              "Microsoft.Storage/storageAccounts/listAccountSas/action",
+              "Microsoft.Storage/storageAccounts/read"
+            ],
+            "notActions": [],
+            "dataActions": [],
+            "notDataActions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/disk-role",
+      "properties": {
+        "roleName": "Disk Exporter",
+        "permissions": [
+          {
+            "actions": [
+              "Microsoft.Compute/disks/beginGetAccess/action",
+              "Microsoft.Compute/snapshots/beginGetAccess/action"
+            ],
+            "notActions": [],
+            "dataActions": [],
+            "notDataActions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/cosmos-role",
+      "properties": {
+        "roleName": "Cosmos Key Reader",
+        "permissions": [
+          {
+            "actions": [
+              "Microsoft.DocumentDB/databaseAccounts/listKeys/action"
             ],
             "notActions": [],
             "dataActions": [],

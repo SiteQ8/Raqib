@@ -667,6 +667,41 @@
           "name": "tunneler"
         }
       ]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {
+        "name": "log-reader"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "pods/log"
+          ],
+          "verbs": [
+            "get"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "ClusterRoleBinding",
+      "metadata": {
+        "name": "b-logread"
+      },
+      "roleRef": {
+        "kind": "ClusterRole",
+        "name": "log-reader"
+      },
+      "subjects": [
+        {
+          "kind": "User",
+          "name": "log-reader-user"
+        }
+      ]
     }
   ]
 }
