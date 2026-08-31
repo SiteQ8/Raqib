@@ -61,6 +61,14 @@ class TestK8sFindings(unittest.TestCase):
         findings, _, _ = audit(load("vulnerable.json"))
         self.assertTrue(any("client certificates to authenticate as anyone" in f["title"] and f["severity"] == "high" for f in findings))
 
+    def test_rolebindings_persistence_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("role bindings across namespaces" in f["title"] and f["tactic"] == "persistence" for f in findings))
+
+    def test_serviceaccount_creation_persistence_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any(f["title"] == "Can create service accounts" and f["tactic"] == "persistence" for f in findings))
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)

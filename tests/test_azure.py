@@ -50,6 +50,14 @@ class TestAzureFindings(unittest.TestCase):
         findings, _, _ = audit(load("vulnerable.json"))
         self.assertTrue(any("write custom role definitions" in f["title"] and f["severity"] == "medium" for f in findings))
 
+    def test_federated_credential_persistence_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("federated credential to a managed identity" in f["title"] and f["severity"] == "high" and f["tactic"] == "persistence" for f in findings))
+
+    def test_automation_account_persistence_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("create an Automation account" in f["title"] and f["tactic"] == "persistence" for f in findings))
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)

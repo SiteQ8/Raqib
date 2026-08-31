@@ -89,6 +89,36 @@
         "roleName": "Role Author",
         "scope": "/subscriptions/sub-1"
       }
+    },
+    {
+      "properties": {
+        "principalId": "aaaa-fed",
+        "principalType": "User",
+        "principalName": "fedcred-writer",
+        "roleDefinitionId": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/fed-cred",
+        "roleName": "FedCred Writer",
+        "scope": "/subscriptions/sub-1/resourceGroups/identity"
+      }
+    },
+    {
+      "properties": {
+        "principalId": "bbbb-auto",
+        "principalType": "User",
+        "principalName": "automation-author",
+        "roleDefinitionId": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/auto-acct",
+        "roleName": "Automation Author",
+        "scope": "/subscriptions/sub-1/resourceGroups/ops"
+      }
+    },
+    {
+      "properties": {
+        "principalId": "cccc-mi",
+        "principalType": "ServicePrincipal",
+        "principalName": "mi-creator",
+        "roleDefinitionId": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/mi-write",
+        "roleName": "Identity Creator",
+        "scope": "/subscriptions/sub-1/resourceGroups/identity"
+      }
     }
   ],
   "roleDefinitions": [
@@ -202,6 +232,54 @@
             "actions": [
               "Microsoft.Authorization/roleDefinitions/write",
               "Microsoft.Authorization/roleDefinitions/read"
+            ],
+            "notActions": [],
+            "dataActions": [],
+            "notDataActions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/fed-cred",
+      "properties": {
+        "roleName": "FedCred Writer",
+        "permissions": [
+          {
+            "actions": [
+              "Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials/write"
+            ],
+            "notActions": [],
+            "dataActions": [],
+            "notDataActions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/auto-acct",
+      "properties": {
+        "roleName": "Automation Author",
+        "permissions": [
+          {
+            "actions": [
+              "Microsoft.Automation/automationAccounts/write"
+            ],
+            "notActions": [],
+            "dataActions": [],
+            "notDataActions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "/subscriptions/sub-1/providers/Microsoft.Authorization/roleDefinitions/mi-write",
+      "properties": {
+        "roleName": "Identity Creator",
+        "permissions": [
+          {
+            "actions": [
+              "Microsoft.ManagedIdentity/userAssignedIdentities/write"
             ],
             "notActions": [],
             "dataActions": [],
