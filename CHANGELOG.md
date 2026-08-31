@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0
+
+Raqib is now built as the mirror of an offensive toolkit, its checks organized by the six attacker tactics so the defense maps onto the offense one for one.
+
+- Checks are split into one module per tactic under raqib/checks: recon, privesc, persist, lateral, exfil, and cleanup
+- New reconnaissance check: flags the call that dumps the entire IAM configuration, and broad identity enumeration
+- New exfiltration check: flags the permission to read every secret, object, parameter, or key, and to share a snapshot out of the account
+- New persistence check: flags principals that can create a new user or role and grant it access
+- A banner, and a defends command that maps each S7aba module family to what Raqib covers
+- Contributor, security, and conduct guides, and a banner image
+- 73 tests
+
 ## 0.2.0
 
 Broader coverage of the tactics an intruder uses after a foothold, plus reporting that ties each finding to the technique it defends against.

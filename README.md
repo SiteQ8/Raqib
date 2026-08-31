@@ -10,25 +10,22 @@ Live demo and a sample report: https://siteq8.github.io/Raqib/
 
 ## Why it exists
 
-An attacker who lands a single set of credentials does not stop there. They look for a way to turn that access into more: a policy they can rewrite, an administrator policy they can attach to themselves, a role they can pass to a service they control, a password they can set on a more powerful user. These moves are well known and they live in the IAM configuration, in plain sight, before anyone uses them.
+An attacker who lands a single set of credentials does not stop there. They map the account, look for a way to turn that access into more, plant something to keep it, reach the next principal, pull the data out, and turn off the logging that would record any of it. These moves are well known, and every one of them rests on a permission that lives in the IAM configuration, in plain sight, before anyone uses it.
 
-Raqib walks those same paths so you can close them first. It is the defensive side of the map: the same routes an attacker studies, read so a defender can shut them.
+Raqib walks those same paths so you can close them first. It is built as the mirror of an offensive toolkit: for each tactic an attacker runs after a foothold, Raqib reads the account for the exposure that lets it work.
 
-## What it looks for
+## The six tactics, read for defense
 
-Raqib checks each principal's effective permissions, after inline policies, attached managed policies, and group memberships are combined, against the known IAM escalation paths:
+Raqib's checks are organized by attacker tactic, the same six an offensive framework runs, so the defense maps onto the offense one for one. Run `python3 raqib.py defends` to see the map.
 
-- Rewriting a policy the principal is attached to, or rolling it back to a more permissive version
-- Attaching or writing an administrator policy onto a user, group, or role
-- Setting or resetting a console password on another user, or minting access keys for one
-- Adding itself to a group, or rewriting a role trust policy it can then assume
-- Passing a powerful role to a new EC2 instance, Lambda function, Glue endpoint, CloudFormation stack, Data Pipeline, SageMaker notebook, or CodeBuild project
+- Reconnaissance: the one call that dumps the entire IAM configuration, and broad identity enumeration, the mapping an attacker does first.
+- Privilege escalation: the known IAM escalation paths, administrator by wildcard or attached policy, and full control of a sensitive service, read with permissions boundary awareness.
+- Persistence: principals that can create a new user or role and grant it access, and a second active access key left on a user.
+- Lateral movement: role trust policies that are assumable by anyone, trust an external account, or federate without a condition.
+- Exfiltration: the permission to read every secret, object, parameter, or key, and to share a snapshot out of the account.
+- Anti forensics: principals, beyond the administrators already flagged, that can stop or delete CloudTrail, Config, GuardDuty, log groups, or Security Hub.
 
-It also reads role trust policies for roles assumable by anyone, roles that trust an external account, and federated trust with no condition. It flags administrator by wildcard, and full control of a sensitive service through a service wildcard. It finds principals that can weaken the account's own record keeping, the ones that can stop or delete CloudTrail, Config, GuardDuty, log groups, or Security Hub, which is the move an intruder makes to erase their tracks. And with a credential report it adds root access keys, console users without multi factor authentication, users carrying a second active access key, and access keys that are old and still active.
-
-Raqib reads a permissions boundary when one is attached, and lowers a finding when the boundary would cap the escalation it describes, so a bounded principal is not read as if it had free rein. Every finding carries the MITRE ATT&CK technique it defends against.
-
-Run `python3 raqib.py paths` to list every escalation path it checks, and `python3 raqib.py defends` to see which attacker tactics Raqib covers.
+Every finding says why it is exploitable, the change that closes it, and the MITRE ATT&CK technique it defends against. Run `python3 raqib.py paths` to list every privilege escalation path it checks.
 
 ## Install
 
@@ -85,7 +82,9 @@ Raqib is the defensive reading of the moves an intruder makes after landing a fo
 
 ## How it works
 
-The audit runs entirely on the file you provide. The model reads `get-account-authorization-details` into principals, resolving each one's permissions across inline, attached, and group policies, with a matcher that understands IAM wildcards and lets an explicit Deny override an Allow. The rules test those resolved permissions against each escalation path, separating an unconditional grant on resource `*` from one a resource restriction may already contain. Nothing here executes anything, and nothing leaves your machine.
+The audit runs entirely on the file you provide. The model reads `get-account-authorization-details` into principals, resolving each one's permissions across inline, attached, and group policies, with a matcher that understands IAM wildcards and lets an explicit Deny override an Allow, and reading a permissions boundary where one is attached. The checks live in `raqib/checks`, one module per attacker tactic, and each tests those resolved permissions for the exposure that lets its tactic work, separating an unconditional grant on resource `*` from one a resource restriction may already contain. Nothing here executes anything, and nothing leaves your machine.
+
+With a credential report, Raqib adds what the authorization details cannot show: root access keys, console users without multi factor authentication, a second active access key on a user, and access keys that are old and still active.
 
 ## License
 
