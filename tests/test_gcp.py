@@ -69,6 +69,14 @@ class TestGcpFindings(unittest.TestCase):
         self.assertTrue(any(f["title"] == "Can impersonate service accounts"
                             and f["principal"]["name"] == "token-signer@example.com" for f in findings))
 
+    def test_sa_setiampolicy_persistence_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("lasting access to a service account" in f["title"] and f["tactic"] == "persistence" for f in findings))
+
+    def test_scheduled_job_persistence_flagged(self):
+        findings, _, _ = audit(load("vulnerable.json"))
+        self.assertTrue(any("plant a scheduled job" in f["title"] and f["tactic"] == "persistence" for f in findings))
+
     def test_clean_has_no_findings(self):
         findings, summary, _ = audit(load("clean.json"))
         self.assertEqual(summary["total"], 0)

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0
+
+Deeper persistence coverage on Azure, GCP, and Kubernetes, bringing each closer to the AWS depth. The bash scanner and the Python engine gain the checks together.
+
+- Azure: adding a federated identity credential to a managed identity, which lets an external OIDC issuer authenticate as it with no secret to rotate, and creating an Automation account, a durable scheduled execution surface. Creating managed identities and planting role assignments are kept
+- GCP: setting the IAM policy on a service account to bind a controlled principal as a token creator, a stealthy back door, and planting a Cloud Scheduler job that re-triggers a callback. Service account keys and service accounts are kept
+- Kubernetes: creating role bindings across namespaces and creating service accounts, alongside the cluster role bindings and admission webhooks already covered
+- New sample principals and six tests. 127 tests, the two engines still in lockstep
+
+
 ## 0.9.0
 
 Deeper escalation coverage on two more clouds, a wider exposure scan, and a new diff command.

@@ -490,6 +490,112 @@
           "name": "cert-issuer"
         }
       ]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {
+        "name": "cluster-binder"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "rbac.authorization.k8s.io"
+          ],
+          "resources": [
+            "clusterrolebindings"
+          ],
+          "verbs": [
+            "create"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {
+        "name": "namespace-binder"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "rbac.authorization.k8s.io"
+          ],
+          "resources": [
+            "rolebindings"
+          ],
+          "verbs": [
+            "create"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "ClusterRole",
+      "metadata": {
+        "name": "sa-creator"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "serviceaccounts"
+          ],
+          "verbs": [
+            "create"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "ClusterRoleBinding",
+      "metadata": {
+        "name": "b-clusterbind"
+      },
+      "roleRef": {
+        "kind": "ClusterRole",
+        "name": "cluster-binder"
+      },
+      "subjects": [
+        {
+          "kind": "User",
+          "name": "cluster-binder-user"
+        }
+      ]
+    },
+    {
+      "kind": "ClusterRoleBinding",
+      "metadata": {
+        "name": "b-nsbind"
+      },
+      "roleRef": {
+        "kind": "ClusterRole",
+        "name": "namespace-binder"
+      },
+      "subjects": [
+        {
+          "kind": "User",
+          "name": "ns-binder"
+        }
+      ]
+    },
+    {
+      "kind": "ClusterRoleBinding",
+      "metadata": {
+        "name": "b-samaker"
+      },
+      "roleRef": {
+        "kind": "ClusterRole",
+        "name": "sa-creator"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "sa-maker",
+          "namespace": "platform"
+        }
+      ]
     }
   ]
 }

@@ -1,7 +1,9 @@
 """GCP persistence checks: the mirror of S7aba's persist_gcp.
 
-The durable foothold in GCP is a service account key: a long lived credential that
-keeps working. Creating service accounts, or keys for them, is how an intruder stays.
+A durable foothold in GCP is a service account key, a long lived credential that keeps
+working, or a fresh service account. Setting the IAM policy on a service account binds
+a controlled principal to it as a stealthy back door, and a scheduled job re-triggers a
+callback on a timer. Read only, never calls GCP.
 """
 
 from raqib.lib.common import _finding, _principal_label
@@ -23,6 +25,18 @@ def check(acct):
             findings.append(_finding("pg" + str(n), "medium", "Can create service accounts", p,
                 f"{_principal_label(p)} can create service accounts, a fresh identity an intruder can stand up and return through.",
                 "Limit roles/iam.serviceAccountAdmin to the members that provision identities.",
+                "persistence"))
+            n += 1
+        if acct.has_permission(p, "iam.serviceaccounts.setiampolicy"):
+            findings.append(_finding("pg" + str(n), "medium", "Can grant lasting access to a service account", p,
+                f"{_principal_label(p)} can set the IAM policy on a service account, binding a principal it controls as a token creator, a stealthy back door into that identity.",
+                "Restrict iam.serviceAccounts.setIamPolicy, and review who is bound on high value service accounts.",
+                "persistence"))
+            n += 1
+        if acct.has_permission(p, "cloudscheduler.jobs.create"):
+            findings.append(_finding("pg" + str(n), "medium", "Can plant a scheduled job", p,
+                f"{_principal_label(p)} can create Cloud Scheduler jobs, a timer an intruder can use to re-trigger a callback and return.",
+                "Limit cloudscheduler.jobs.create, and review scheduled jobs for unexpected targets.",
                 "persistence"))
             n += 1
     return findings
