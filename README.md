@@ -24,15 +24,18 @@ That is the whole thing. Point it at a cloud, read the exposure, change nothing.
 ./raqib.sh                       scan whatever cloud you are signed in to, live
 ./raqib.sh --cloud aws           scan one named cloud
 ./raqib.sh scan --credentials    also read the AWS credential report
-./raqib.sh scan --exposure       also read S3 and KMS resource policies for public exposure
+./raqib.sh scan --exposure       also read S3, SQS, SNS, Lambda, Secrets Manager, and KMS policies for exposure
 ./raqib.sh scan --strict         exit non zero if a critical or high finding is present
 ./raqib.sh scan --json           machine readable findings
 ./raqib.sh defends               print the whole cloud by tactic map of what Raqib checks
+./raqib.sh diff OLD.json NEW.json compare two exports, report findings that appeared or resolved
 ```
 
 For AWS, `--credentials` adds what IAM policy cannot show: a root account with an active access key or no multi factor authentication, a console user without a second factor, and access keys that are old and still active. It reads the credential report, which describes the account and changes no principal. Pass `--max-key-age DAYS` to set what counts as old, and `--credential-report FILE` to read a report you already captured.
 
 For AWS, `--exposure` reads the resource policies of S3 buckets, SQS queues, SNS topics, Lambda functions, Secrets Manager secrets, and KMS keys, and flags any left open to the public or another account: a bucket public through its policy, a queue or topic anyone can use, a function anyone can invoke, a secret anyone can read, a KMS key policy that allows any principal, and any of these that grants an external account access. This reads the resource policy, it never reads an object, a message, a secret value, or decrypts anything. Pass `--resource-policies FILE` to read policies you already captured.
+
+`diff` scans two exports and reports which findings appeared and which resolved between them, so a posture regression is caught between two points in time. Detected per file, or pass `--cloud`; add `--strict` to exit non zero when a finding appeared, for a pipeline that fails on new exposure. The Python engine has the same command, `python -m raqib diff OLD.json NEW.json`.
 
 Live scanning needs `jq` and the CLI for the cloud you are scanning (`aws`, `az`, `gcloud`, or `kubectl`), already signed in. Nothing else.
 

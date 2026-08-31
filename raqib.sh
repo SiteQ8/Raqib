@@ -10,7 +10,7 @@
 # secret, object, or key. It reads who can do what, and reports it.
 
 set -u
-RAQIB_VERSION="0.8.0"
+RAQIB_VERSION="0.9.0"
 RAQIB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck disable=SC1091
@@ -57,10 +57,13 @@ usage() {
 '             resources left open to the public or another account.' \
 '  ./raqib.sh defends' \
 '             print the whole cloud by tactic map of what Raqib checks.' \
+'  ./raqib.sh diff OLD.json NEW.json [--cloud CLOUD] [--strict]' \
+'             scan two exports and report which findings appeared or resolved,' \
+'             to catch a posture regression between two points in time.' \
 '' \
 'Other options:' \
 '  --credential-report FILE   read a credential report CSV you already captured' \
-'  --resource-policies FILE   read captured S3 and KMS policies instead of calling AWS' \
+'  --resource-policies FILE   read captured S3, SQS, SNS, Lambda, Secrets, KMS policies' \
 '  --max-key-age DAYS         what counts as an old AWS access key (default 90)' \
 '' \
 'Notes:' \
@@ -187,10 +190,92 @@ cmd_scan() {
   fi
 }
 
+render_diff_line() {
+  local sign="$1" color="$2" line="$3" sev title name kind
+  sev=$(jq -r '.severity' <<<"$line"); title=$(jq -r '.title' <<<"$line")
+  name=$(jq -r '.principal.name' <<<"$line"); kind=$(jq -r '.principal.kind' <<<"$line")
+  printf '  %s%s%s %s[%s]%s %s%s%s  %s(%s %s)%s\n' \
+    "$color" "$sign" "$C_RESET" "$C_DIM" "$sev" "$C_RESET" "$C_BOLD" "$title" "$C_RESET" "$C_DIM" "$kind" "$name" "$C_RESET"
+}
+
+report_diff() {
+  local cloud="$1" dj="$2" na nr nu
+  na=$(jq '.added|length' <<<"$dj"); nr=$(jq '.removed|length' <<<"$dj"); nu=$(jq '.unchanged' <<<"$dj")
+  printf '\n  %s%s posture diff%s\n' "$C_BOLD" "$(echo "$cloud" | tr '[:lower:]' '[:upper:]')" "$C_RESET"
+  printf '  %s%s new   %s resolved   %s unchanged%s\n\n' "$C_DIM" "$na" "$nr" "$nu" "$C_RESET"
+  if [ "$na" -eq 0 ] && [ "$nr" -eq 0 ]; then
+    printf '  %sNo change in the findings between these two exports.%s\n\n' "$C_GREEN" "$C_RESET"
+    return 0
+  fi
+  if [ "$na" -gt 0 ]; then
+    printf '  %s%sNew findings, exposure that appeared since the first export%s\n' "$C_BOLD" "$C_RED" "$C_RESET"
+    jq -c '.added[]' <<<"$dj" | while IFS= read -r line; do render_diff_line "+" "$C_RED" "$line"; done
+    printf '\n'
+  fi
+  if [ "$nr" -gt 0 ]; then
+    printf '  %s%sResolved findings, exposure that is gone in the second export%s\n' "$C_BOLD" "$C_GREEN" "$C_RESET"
+    jq -c '.removed[]' <<<"$dj" | while IFS= read -r line; do render_diff_line "-" "$C_GREEN" "$line"; done
+    printf '\n'
+  fi
+}
+
+# diff two exports: scan each, then report which findings appeared or resolved. This
+# is how a posture regression is caught between two points in time. Read only.
+cmd_diff() {
+  local as_json=0 strict=0 forced_cloud="" old="" new="" pass=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --json) as_json=1; shift ;;
+      --strict) strict=1; shift ;;
+      --cloud) forced_cloud="$2"; shift 2 ;;
+      --credentials|--exposure) pass+=("$1"); shift ;;
+      --credential-report|--resource-policies|--max-key-age) pass+=("$1" "$2"); shift 2 ;;
+      -h|--help) usage; exit 0 ;;
+      -*) log_error "unknown option: $1"; usage; exit 2 ;;
+      *) if [ -z "$old" ]; then old="$1"; elif [ -z "$new" ]; then new="$1";
+         else log_error "diff takes two files: OLD.json NEW.json"; exit 2; fi; shift ;;
+    esac
+  done
+  [ -n "$old" ] && [ -n "$new" ] || { log_error "usage: raqib.sh diff OLD.json NEW.json [--cloud CLOUD] [--json] [--strict]"; exit 2; }
+  [ -f "$old" ] || { log_error "no such file: $old"; exit 2; }
+  [ -f "$new" ] || { log_error "no such file: $new"; exit 2; }
+  local co cn
+  co="$forced_cloud"; [ -n "$co" ] || co="$(detect_from_file "$old")"
+  cn="$forced_cloud"; [ -n "$cn" ] || cn="$(detect_from_file "$new")"
+  [ -n "$co" ] && [ -n "$cn" ] || { log_error "could not tell which cloud these exports are from. pass --cloud."; exit 2; }
+  [ "$co" = "$cn" ] || { log_error "the two exports are from different clouds ($co and $cn). diff compares one cloud."; exit 2; }
+
+  local oldf newf
+  oldf="$WORKDIR/_diff_old.json"; newf="$WORKDIR/_diff_new.json"
+  bash "$RAQIB_ROOT/raqib.sh" scan --offline "$old" --cloud "$co" --json "${pass[@]}" > "$oldf" 2>/dev/null || echo '[]' > "$oldf"
+  bash "$RAQIB_ROOT/raqib.sh" scan --offline "$new" --cloud "$cn" --json "${pass[@]}" > "$newf" 2>/dev/null || echo '[]' > "$newf"
+
+  local dj
+  dj="$(jq -n --slurpfile o "$oldf" --slurpfile n "$newf" '
+    def key: (.tactic + "|" + .title + "|" + (.principal.arn // ""));
+    ($o[0] // []) as $old | ($n[0] // []) as $new
+    | ($old | map(key)) as $ok
+    | ($new | map(key)) as $nk
+    | { added:   [ $new[] | select((.|key) as $k | ($ok | index($k)) | not) ],
+        removed: [ $old[] | select((.|key) as $k | ($nk | index($k)) | not) ],
+        unchanged: ([ $new[] | select((.|key) as $k | ($ok | index($k))) ] | length) }')"
+
+  if [ "$as_json" -eq 1 ]; then
+    jq -n --argjson d "$dj" '$d'
+  else
+    report_diff "$co" "$dj"
+  fi
+
+  if [ "$strict" -eq 1 ] && [ "$(jq '.added|length' <<<"$dj")" -gt 0 ]; then
+    exit 1
+  fi
+}
+
 main() {
   local sub="${1:-scan}"
   case "$sub" in
     defends) cmd_defends ;;
+    diff) shift || true; cmd_diff "$@" ;;
     scan) shift || true; cmd_scan "$@" ;;
     -h|--help) banner; usage ;;
     --*) cmd_scan "$@" ;;

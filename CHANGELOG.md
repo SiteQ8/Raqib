@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.0
+
+Deeper escalation coverage on two more clouds, a wider exposure scan, and a new diff command.
+
+- Azure privilege escalation: running code on a VM through runCommand or an extension, running an Automation runbook, and assigning a user assigned managed identity, each executing as that identity, plus the roleDefinitions/write check that had only been in the Python engine
+- Kubernetes privilege escalation: creating the workload controllers that spawn pods, exec and attach into running pods, minting service account tokens, and self approving a certificate signing request to authenticate as anyone
+- AWS --exposure now reads SQS queue, SNS topic, Lambda function, and Secrets Manager secret resource policies as well as S3 and KMS, flagging any left open to the public or another account. The read only gather allowlist gains the matching list and get calls
+- New diff command: scan two exports and report which findings appeared and which resolved, to catch a posture regression between two points in time. In both the bash scanner and the Python engine, with --strict for a pipeline that fails on new exposure
+- 121 tests, the bash scanner and the Python engine still in lockstep
+
+
 ## 0.8.0
 
 Deeper GCP privilege escalation. GCP privesc now reads the documented escalation paths, not just Owner and impersonation, bringing it closer to the AWS depth.
