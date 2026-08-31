@@ -2,7 +2,7 @@
 
 A read only lookout over your cloud access. Point Raqib at the cloud you are signed in to and it reads your live authorization configuration with read only calls, then reports the moves an intruder would make after a foothold: mapping the account, turning access into more, planting something to keep it, reaching the next principal, pulling the data out, and turning off the logging that would record it. Each finding says why it is exploitable and the change that closes it.
 
-Raqib (رقيب, the watcher) is the defensive mirror of an offensive framework that runs those same six tactics across AWS, Azure, GCP, and Kubernetes. It reads who can do what, and reports it. It never creates, changes, or deletes anything, and it never reads the contents of a secret, an object, or a key.
+Raqib (راقب, one who watches over) is the defensive mirror of an offensive framework that runs those same six tactics across AWS, Azure, GCP, and Kubernetes. It reads who can do what, and reports it. It never creates, changes, or deletes anything, and it never reads the contents of a secret, an object, or a key.
 
 Live demo and a sample report: https://siteq8.github.io/Raqib/
 
@@ -108,7 +108,7 @@ The Python engine under `raqib/` mirrors the same layout, `raqib/lib`, `raqib/mo
 
 ## The name
 
-Raqib is رقيب, Arabic for the watcher, the observer, the one who keeps vigilant guard. It comes from the root ر ق ب, which carries the sense of watching, observing, and keeping watch over something.
+Raqib is راقب, Arabic for one who watches over, the observer who keeps watch. It comes from the root ر ق ب, which carries the sense of watching, observing, and keeping guard over something.
 
 The name is the whole idea of the tool. A raqib watches and reports what it sees; it does not act. That is exactly what this is. Raqib observes your cloud's access with read only calls and reports what it finds, and it never touches the account. A watcher, not an actor. Where the offensive framework it mirrors acts on a cloud, Raqib keeps watch over one.
 
